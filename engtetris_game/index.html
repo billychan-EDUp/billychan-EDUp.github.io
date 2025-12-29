@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Husky STEAM Lab Word Tetris</title>
+    <title>Husky Word Tetris</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -38,6 +38,9 @@
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
+            /* 確保在 iOS 上也能滿版 */
+            height: 100vh;
+            height: 100dvh;
         }
         
         /* 按鈕按下效果 */
@@ -48,7 +51,7 @@
     </style>
 </head>
 <body class="bg-slate-900 text-white font-sans overflow-hidden">
-    <div id="root"></div>
+    <div id="root" class="h-full"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
@@ -645,14 +648,12 @@
                 </div>
               )}
 
-              {/* 遊戲主區域 */}
-              <div 
-                className="flex-1 relative flex flex-col items-center justify-center bg-slate-900 overflow-hidden w-full max-w-md mx-auto"
-              >
+              {/* 遊戲主區域 (Layout: Flex-1 to fill space between Header and Controls) */}
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full max-w-md mx-auto relative">
                 
-                {/* 1. 上方版塊：通知 (Logo removed from here) */}
+                {/* 1. 上方版塊：通知 (Logo removed, persistent message) */}
                 {gameState === 'PLAYING' && (
-                  <div className="w-full flex flex-col items-center justify-center mb-2 px-4 shrink-0">
+                  <div className="w-full flex justify-center py-2 px-4 shrink-0 z-10">
                       <div className="bg-slate-800/80 border border-slate-600 rounded-full px-4 py-2 text-sm text-yellow-300 font-bold shadow-sm w-full text-center truncate flex items-center justify-center gap-2">
                           <Sparkles className="animate-spin-slow w-4 h-4 shrink-0 text-yellow-400" />
                           <span className="truncate">{topMessage || "準備開始..."}</span>
@@ -660,10 +661,12 @@
                   </div>
                 )}
 
-                {/* 2. 遊戲網格 */}
+                {/* 2. 遊戲網格 (Flex-1 to maximize space, object-contain behavior) */}
                 <div 
-                  className="relative shrink-1"
+                  className="flex-1 w-full flex items-center justify-center relative px-2 pb-2"
                   onTouchStart={e => {
+                      // Prevent default touch actions like scroll/zoom inside game area
+                      // e.preventDefault(); 
                       touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
                   }}
                   onTouchEnd={e => {
@@ -677,15 +680,15 @@
                           if (dy < -30) drop();
                       }
                   }}
-                  style={{
-                    aspectRatio: `${GRID_W}/${GRID_H}`,
-                    height: 'min(55vh, 600px)', // 限制高度以留空間給按鈕
-                    maxHeight: '600px'
-                  }}
                 >
                   <div 
-                    className="grid gap-[1px] bg-slate-800/50 p-1 rounded border-2 border-slate-700 w-full h-full"
+                    className="grid gap-[1px] bg-slate-800/50 p-1 rounded border-2 border-slate-700 shadow-xl"
                     style={{
+                      aspectRatio: `${GRID_W}/${GRID_H}`,
+                      height: '100%',
+                      width: 'auto',
+                      maxHeight: '100%',
+                      maxWidth: '100%',
                       gridTemplateColumns: `repeat(${GRID_W}, minmax(0, 1fr))`
                     }}
                   >
@@ -703,14 +706,16 @@
                         const renderData = activeCell || cell;
                         const isGhost = renderData && renderData.type === 'ghost';
                         
+                        // Dynamic text size based on container/cell
                         return (
                           <div 
                             key={`${x}-${y}`} 
                             className={`
-                              w-full h-full rounded-[2px] flex items-center justify-center text-[10px] sm:text-xs font-bold overflow-hidden transition-colors duration-75
+                              w-full h-full rounded-[2px] flex items-center justify-center font-bold overflow-hidden transition-colors duration-75
                               ${renderData ? renderData.color : 'bg-slate-800/30'}
                               ${isGhost ? 'opacity-40' : ''}
                               ${activeCell && !isGhost ? 'ring-1 ring-white/80 z-10' : ''}
+                              text-xs md:text-sm lg:text-base
                             `}
                           >
                             {renderData && !isGhost ? renderData.text : ''}
@@ -733,37 +738,35 @@
                     </div>
                   )}
                 </div>
+              </div>
 
-                {/* 3. 下方控制區 (Virtual Controls) */}
-                <div className="w-full mt-2 px-4 shrink-0 grid grid-cols-3 gap-2 h-12 mb-2">
+              {/* 3. 下方控制區 (Fixed height at bottom) */}
+              <div className="w-full px-4 pb-4 pt-2 shrink-0 bg-slate-900 z-20">
+                  <div className="grid grid-cols-3 gap-2 h-10 w-full max-w-sm mx-auto">
                     {/* 左 */}
                     <button 
-                      className="bg-slate-800/80 rounded-xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
-                      onTouchStart={(e) => { e.preventDefault(); move(-1, 0); }}
-                      onClick={() => move(-1, 0)}
+                      className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
+                      onPointerDown={(e) => { e.preventDefault(); move(-1, 0); }}
                     >
                       <ArrowLeft size={18} className="text-slate-300" />
                     </button>
                     
                     {/* 下 (加速) */}
                     <button 
-                      className="bg-slate-800/80 rounded-xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
-                      onTouchStart={(e) => { e.preventDefault(); move(0, 1); }}
-                      onClick={() => move(0, 1)}
+                      className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
+                      onPointerDown={(e) => { e.preventDefault(); move(0, 1); }}
                     >
                       <ArrowDown size={18} className="text-slate-300" />
                     </button>
 
                     {/* 右 */}
                     <button 
-                      className="bg-slate-800/80 rounded-xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
-                      onTouchStart={(e) => { e.preventDefault(); move(1, 0); }}
-                      onClick={() => move(1, 0)}
+                      className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
+                      onPointerDown={(e) => { e.preventDefault(); move(1, 0); }}
                     >
                       <ArrowRight size={18} className="text-slate-300" />
                     </button>
                 </div>
-
               </div>
 
               {/* 首頁 */}
