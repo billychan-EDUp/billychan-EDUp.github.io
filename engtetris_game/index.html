@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Tetris: 詞綴方塊</title>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel 用於解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* 自定義樣式 */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        @keyframes fade-out {
+          0% { opacity: 1; transform: scale(0.9); }
+          10% { opacity: 1; transform: scale(1.1); }
+          100% { opacity: 0; transform: scale(1); }
+        }
+        .animate-fade-out { animation: fade-out 1.5s forwards ease-out; }
+        
+        /* 防止手機端雙擊縮放和長按選取 */
+        body {
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // --- 圖標組件 (Inline SVG) ---
+        const IconWrapper = ({ children, size = 24, className = "" }) => (
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width={size} 
+            height={size} 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className={className}
+          >
+            {children}
+          </svg>
+        );
+
+        const Play = (props) => <IconWrapper {...props}><polygon points="5 3 19 12 5 21 5 3" /></IconWrapper>;
+        const RotateCcw = (props) => <IconWrapper {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></IconWrapper>;
+        const ArrowLeft = (props) => <IconWrapper {...props}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></IconWrapper>;
+        const ArrowRight = (props) => <IconWrapper {...props}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></IconWrapper>;
+        const ArrowDown = (props) => <IconWrapper {...props}><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></IconWrapper>;
+        const Type = (props) => <IconWrapper {...props}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></IconWrapper>;
+        const Sparkles = (props) => <IconWrapper {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M9 5h4" /><path d="M19 17v4" /><path d="M15 19h4" /></IconWrapper>;
+        const Lock = (props) => <IconWrapper {...props}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></IconWrapper>;
+        const BookOpen = (props) => <IconWrapper {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></IconWrapper>;
+        const Clock = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></IconWrapper>;
+        const Target = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></IconWrapper>;
+        const X = (props) => <IconWrapper {...props}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></IconWrapper>;
+        const ChevronRight = (props) => <IconWrapper {...props}><polyline points="9 18 15 12 9 6" /></IconWrapper>;
+        const Volume2 = (props) => <IconWrapper {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></IconWrapper>;
+        const VolumeX = (props) => <IconWrapper {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></IconWrapper>;
+
+        // --- 遊戲資料庫 ---
+        const WORD_PAIRS = [
+          // Level 1: 基礎入門 (4組)
+          ['help', 'er', 'helper', 1, '助手', 'A person who helps'],
+          ['play', 'er', 'player', 1, '玩家', 'A person taking part in a game'],
+          ['teach', 'er', 'teacher', 1, '教師', 'A person who teaches'],
+          ['un', 'happy', 'unhappy', 1, '不快樂的', 'Not happy'],
+          
+          // Level 2: +2 (Total 6)
+          ['help', 'less', 'helpless', 2, '無助的', 'Unable to help oneself'],
+          ['kind', 'ness', 'kindness', 2, '仁慈', 'The quality of being friendly'],
+
+          // Level 3: +2 (Total 8)
+          ['dis', 'like', 'dislike', 3, '不喜歡', 'Feel distaste for'],
+          ['mis', 'take', 'mistake', 3, '錯誤', 'An action or judgment that is wrong'],
+
+          // Level 4: +2 (Total 10)
+          ['pre', 'view', 'preview', 4, '預覽', 'An inspection before it is available'],
+          ['re', 'view', 'review', 4, '複習', 'A formal assessment'],
+
+          // Level 5: +2 (Total 12)
+          ['im', 'possible', 'impossible', 5, '不可能的', 'Not able to occur'],
+          ['in', 'active', 'inactive', 5, '不活躍的', 'Not engaging in physical activity'],
+
+          // Level 6: +2 (Total 14)
+          ['slow', 'ly', 'slowly', 6, '緩慢地', 'At a slow speed'],
+          ['quick', 'ly', 'quickly', 6, '快速地', 'At a fast speed'],
+
+          // Level 7: +2 (Total 16)
+          ['home', 'work', 'homework', 7, '家庭作業', 'Schoolwork done at home'],
+          ['foot', 'ball', 'football', 7, '足球', 'A game played with a ball'],
+
+          // Level 8: +2 (Total 18)
+          ['sun', 'flower', 'sunflower', 8, '向日葵', 'A tall plant with yellow flowers'],
+          ['friend', 'ship', 'friendship', 8, '友誼', 'The emotions or conduct of friends'],
+
+          // Level 9: +2 (Total 20)
+          ['inter', 'view', 'interview', 9, '面試', 'A meeting of people face to face'],
+          ['super', 'man', 'superman', 9, '超人', 'A man with superhuman powers'],
+
+          // Level 10: +2 (Total 22)
+          ['use', 'ful', 'useful', 10, '有用的', 'Able to be used for a practical purpose'],
+          ['use', 'less', 'useless', 10, '無用的', 'Not fulfilling an intended purpose']
+        ];
+
+        const LEVEL_CONFIG = {
+          1: { target: 400, time: 60, speed: 900 },
+          2: { target: 800, time: 70, speed: 850 },
+          3: { target: 1200, time: 80, speed: 800 },
+          4: { target: 1600, time: 90, speed: 750 },
+          5: { target: 2000, time: 100, speed: 700 },
+          6: { target: 2500, time: 110, speed: 650 },
+          7: { target: 3000, time: 120, speed: 600 },
+          8: { target: 3600, time: 130, speed: 550 },
+          9: { target: 4200, time: 140, speed: 500 },
+          10: { target: 5000, time: 150, speed: 450 },
+        };
+
+        const GRID_W = 10;
+        const GRID_H = 14; 
+
+        const COLORS = {
+          prefix: 'bg-blue-600 border-blue-400 text-white shadow-md', 
+          root: 'bg-emerald-600 border-emerald-400 text-white shadow-md',   
+          suffix: 'bg-orange-500 border-orange-400 text-white shadow-md', 
+          ghost: 'bg-slate-800 border-2 border-slate-700 border-dashed text-slate-600', 
+          word_locked: 'bg-slate-700 border-slate-600 text-slate-400' 
+        };
+
+        const getPartType = (text) => {
+          const prefixes = ['un', 're', 'dis', 'mis', 'pre', 'im', 'in', 'non', 'over', 'super', 'auto', 'bio', 'mid', 'inter', 'ex', 'trans', 'sub'];
+          const suffixes = ['less', 'ful', 'ness', 'ly', 'ion', 'er', 'ist', 'ship', 'ment', 'able'];
+          if (prefixes.includes(text)) return 'prefix'; 
+          if (suffixes.includes(text)) return 'suffix'; 
+          return 'root'; 
+        };
+
+        const getPartColor = (text) => {
+          const type = getPartType(text);
+          if (type === 'prefix') return COLORS.prefix;
+          if (type === 'suffix') return COLORS.suffix;
+          return COLORS.root; 
+        };
+
+        // BGM URL (Lo-Fi)
+        const BGM_URL = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3";
+
+        function WordTetris() {
+          const [grid, setGrid] = useState(Array(GRID_H).fill(null).map(() => Array(GRID_W).fill(null)));
+          const [activePiece, setActivePiece] = useState(null); 
+          const [score, setScore] = useState(0);
+          const [level, setLevel] = useState(1);
+          const [timeLeft, setTimeLeft] = useState(60);
+          const [gameState, setGameState] = useState('HOME'); 
+          
+          const [showCollection, setShowCollection] = useState(false);
+          const [clearedWords, setClearedWords] = useState([]); 
+          const [combo, setCombo] = useState(0);
+          const [lastAddedTime, setLastAddedTime] = useState(0); 
+          const [discoveredWords, setDiscoveredWords] = useState(new Set());
+          const [definitionModal, setDefinitionModal] = useState(null);
+          
+          const [isMuted, setIsMuted] = useState(false);
+          const audioRef = useRef(null);
+
+          const gameLoopRef = useRef();
+          const speedRef = useRef(800);
+          const touchStartRef = useRef(null);
+
+          const speakWord = (word) => {
+            if ('speechSynthesis' in window) {
+              const utterance = new SpeechSynthesisUtterance(word);
+              utterance.lang = 'en-US';
+              utterance.rate = 0.9;
+              window.speechSynthesis.speak(utterance);
+            }
+          };
+
+          useEffect(() => {
+            if (audioRef.current) {
+              audioRef.current.volume = 0.4;
+              if (gameState === 'PLAYING' && !isMuted) {
+                const playPromise = audioRef.current.play();
+                if (playPromise !== undefined) {
+                  playPromise.catch(error => console.log("Audio play blocked"));
+                }
+              } else {
+                audioRef.current.pause();
+              }
+            }
+          }, [gameState, isMuted]);
+
+          const getAvailableParts = useCallback((currentLevel) => {
+            const validPairs = WORD_PAIRS.filter(p => p[3] <= currentLevel);
+            return Array.from(new Set(validPairs.flatMap(p => [p[0], p[1]])));
+          }, []);
+
+          const spawnPiece = useCallback(() => {
+            const availableParts = getAvailableParts(level);
+            
+            const partsByType = { prefix: [], root: [], suffix: [] };
+            availableParts.forEach(p => {
+              const type = getPartType(p);
+              if (partsByType[type]) partsByType[type].push(p);
+            });
+
+            const availableTypes = Object.keys(partsByType).filter(k => partsByType[k].length > 0);
+            const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+            const selectedPart = partsByType[selectedType][Math.floor(Math.random() * partsByType[selectedType].length)];
+            const partColor = getPartColor(selectedPart);
+
+            const W = { type: 'word', text: selectedPart, color: partColor };
+            const G = { type: 'ghost', text: '', color: COLORS.ghost }; 
+
+            let hasRight = false;
+            let hasDown = false;
+            let hasLeft = false;
+            let hasUp = false;
+
+            const validPairs = WORD_PAIRS.filter(p => p[3] <= level);
+
+            validPairs.forEach(pair => {
+              if (pair[0] === selectedPart) {
+                hasRight = true;
+                hasDown = true;
+              }
+              if (pair[1] === selectedPart) {
+                hasLeft = true;
+                hasUp = true;
+              }
+            });
+
+            const blocks = [{ x: 0, y: 0, cell: W }];
+            if (hasRight) blocks.push({ x: 1, y: 0, cell: G });
+            if (hasDown)  blocks.push({ x: 0, y: 1, cell: G });
+            if (hasLeft)  blocks.push({ x: -1, y: 0, cell: G });
+            if (hasUp)    blocks.push({ x: 0, y: -1, cell: G });
+
+            const minX = Math.min(...blocks.map(b => b.x));
+            const maxX = Math.max(...blocks.map(b => b.x));
+            const minY = Math.min(...blocks.map(b => b.y));
+            const maxY = Math.max(...blocks.map(b => b.y));
+
+            const width = maxX - minX + 1;
+            const height = maxY - minY + 1;
+
+            const shape = Array(height).fill(null).map(() => Array(width).fill(null));
+
+            blocks.forEach(b => {
+              const cellWithId = { ...b.cell, id: Date.now() + Math.random() };
+              shape[b.y - minY][b.x - minX] = cellWithId;
+            });
+
+            const newPiece = {
+              x: Math.floor((GRID_W - shape[0].length) / 2),
+              y: 0,
+              shape: shape
+            };
+
+            if (checkCollision(newPiece.x, newPiece.y, newPiece.shape, grid, true)) {
+              setGameState('GAMEOVER');
+            } else {
+              setActivePiece(newPiece);
+            }
+          }, [grid, level, getAvailableParts]);
+
+          const checkCollision = (pieceX, pieceY, shape, currentGrid, isSpawnCheck = false) => {
+            for (let y = 0; y < shape.length; y++) {
+              for (let x = 0; x < shape[y].length; x++) {
+                if (shape[y][x]) {
+                  const targetX = pieceX + x;
+                  const targetY = pieceY + y;
+                  const pieceCellType = shape[y][x].type;
+
+                  if (targetX < 0 || targetX >= GRID_W || targetY >= GRID_H) return true;
+
+                  if (targetY >= 0) {
+                    const gridCell = currentGrid[targetY][targetX];
+                    if (gridCell === null) continue;
+                    if (pieceCellType === 'ghost') continue; 
+                    if (pieceCellType === 'word') {
+                      if (gridCell.type === 'ghost') continue;
+                      if (gridCell.type === 'word') return true;
+                    }
+                  }
+                }
+              }
+            }
+            return false;
+          };
+
+          const lockPiece = async () => {
+            if (!activePiece) return;
+            const newGrid = grid.map(row => [...row]);
+            
+            activePiece.shape.forEach((row, dy) => {
+              row.forEach((cell, dx) => {
+                if (cell) {
+                  const targetY = activePiece.y + dy;
+                  const targetX = activePiece.x + dx;
+                  
+                  if (targetY >= 0 && targetY < GRID_H && targetX >= 0 && targetX < GRID_W) {
+                    const gridCell = newGrid[targetY][targetX];
+                    
+                    if (cell.type === 'word') {
+                       newGrid[targetY][targetX] = cell; 
+                    } else if (cell.type === 'ghost') {
+                       if (!gridCell || gridCell.type === 'ghost') {
+                         newGrid[targetY][targetX] = cell;
+                       }
+                    }
+                  }
+                }
+              });
+            });
+
+            const settledGrid = applyGravityImmediate(newGrid);
+            setGrid(settledGrid);
+            setActivePiece(null);
+
+            const matches = findMatches(settledGrid);
+            if (matches.length > 0) {
+              await handleMatches(settledGrid, matches);
+            } else {
+              setCombo(0); 
+              spawnPiece();
+            }
+          };
+
+          const applyGravityImmediate = (currentGrid) => {
+            const newGrid = Array(GRID_H).fill(null).map(() => Array(GRID_W).fill(null));
+            for (let x = 0; x < GRID_W; x++) {
+              const words = [];
+              const ghosts = [];
+              for (let y = GRID_H - 1; y >= 0; y--) {
+                const cell = currentGrid[y][x];
+                if (cell) {
+                  if (cell.type === 'word') words.push(cell);
+                  else if (cell.type === 'ghost') ghosts.push(cell);
+                }
+              }
+              let writeY = GRID_H - 1;
+              for (const w of words) {
+                newGrid[writeY][x] = w;
+                writeY--;
+              }
+              for (const g of ghosts) {
+                if (writeY >= 0) {
+                  newGrid[writeY][x] = g;
+                  writeY--;
+                }
+              }
+            }
+            return newGrid;
+          };
+
+          const findMatches = (currentGrid) => {
+            const matches = [];
+            const usedIds = new Set(); 
+            for (let y = 0; y < GRID_H; y++) {
+              for (let x = 0; x < GRID_W; x++) {
+                const cell = currentGrid[y][x];
+                if (!cell || cell.type !== 'word') continue;
+
+                if (x + 1 < GRID_W) {
+                  const rightCell = currentGrid[y][x + 1];
+                  if (rightCell && rightCell.type === 'word') {
+                    const wordInfo = checkWordPair(cell.text, rightCell.text);
+                    if (wordInfo && !usedIds.has(cell.id) && !usedIds.has(rightCell.id)) {
+                      matches.push({ cells: [{x, y}, {x: x+1, y}], wordInfo });
+                      usedIds.add(cell.id); usedIds.add(rightCell.id);
+                    }
+                  }
+                }
+                if (y + 1 < GRID_H) {
+                  const downCell = currentGrid[y + 1][x];
+                  if (downCell && downCell.type === 'word') {
+                    const wordInfo = checkWordPair(cell.text, downCell.text);
+                    if (wordInfo && !usedIds.has(cell.id) && !usedIds.has(downCell.id)) {
+                      matches.push({ cells: [{x, y}, {x, y: y+1}], wordInfo });
+                      usedIds.add(cell.id); usedIds.add(downCell.id);
+                    }
+                  }
+                }
+              }
+            }
+            return matches;
+          };
+
+          const checkWordPair = (part1, part2) => {
+            const combined = part1 + part2;
+            const found = WORD_PAIRS.find(p => p[2] === combined);
+            if (found) {
+              return { full: found[2], meaning_zh: found[4], meaning_en: found[5] };
+            }
+            return null;
+          };
+
+          const handleMatches = async (currentGrid, matches) => {
+            let points = 0;
+            const newClearedWords = [];
+            let newDiscovery = null;
+            let timeBonus = 0; 
+
+            const cellsToClear = new Set();
+            const newlyFoundWords = []; 
+
+            matches.forEach(m => {
+              points += 100 * (combo + 1); 
+              
+              const bonus = 3 + level; 
+              timeBonus += bonus; 
+              
+              newClearedWords.push(m.wordInfo.full);
+              
+              if (!discoveredWords.has(m.wordInfo.full) && !newlyFoundWords.includes(m.wordInfo.full)) {
+                newDiscovery = m.wordInfo;
+                newlyFoundWords.push(m.wordInfo.full);
+              }
+
+              m.cells.forEach(pos => {
+                cellsToClear.add(`${pos.x},${pos.y}`);
+                
+                const neighbors = [
+                  {x: pos.x + 1, y: pos.y},
+                  {x: pos.x - 1, y: pos.y},
+                  {x: pos.x, y: pos.y + 1},
+                  {x: pos.x, y: pos.y - 1}
+                ];
+                
+                neighbors.forEach(n => {
+                  if (n.x >= 0 && n.x < GRID_W && n.y >= 0 && n.y < GRID_H) {
+                    const cell = currentGrid[n.y][n.x];
+                    if (cell && cell.type === 'ghost') {
+                      cellsToClear.add(`${n.x},${n.y}`);
+                    }
+                  }
+                });
+              });
+            });
+            
+            if (newlyFoundWords.length > 0) {
+              setDiscoveredWords(prev => {
+                const next = new Set(prev);
+                newlyFoundWords.forEach(w => next.add(w));
+                return next;
+              });
+            }
+            
+            if (newDiscovery) {
+              setGameState('PAUSED');
+              setDefinitionModal(newDiscovery);
+              speakWord(newDiscovery.full);
+            }
+
+            setScore(prev => prev + points);
+            setTimeLeft(prev => prev + timeBonus); 
+            setLastAddedTime(timeBonus);
+            setClearedWords(newClearedWords);
+            setCombo(prev => prev + 1);
+            
+            const nextGrid = currentGrid.map(row => [...row]);
+            cellsToClear.forEach(key => {
+              const [cx, cy] = key.split(',').map(Number);
+              nextGrid[cy][cx] = null;
+            });
+
+            setGrid(nextGrid);
+            
+            if (!newDiscovery) {
+              setTimeout(() => applyGravity(nextGrid), 300);
+            }
+          };
+
+          const applyGravity = (currentGrid) => {
+            const newGrid = applyGravityImmediate(currentGrid);
+            setGrid(newGrid);
+            
+            const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[10]; 
+            if (score >= config.target && timeLeft > 0) {
+              setGameState('LEVEL_CLEARED');
+              return;
+            }
+
+            setTimeout(() => {
+              const newMatches = findMatches(newGrid);
+              if (newMatches.length > 0) {
+                handleMatches(newGrid, newMatches);
+              } else {
+                setClearedWords([]);
+                spawnPiece();
+              }
+            }, 400);
+          };
+
+          const move = useCallback((dx, dy) => {
+            if (gameState !== 'PLAYING' || !activePiece) return;
+            const nextX = activePiece.x + dx;
+            const nextY = activePiece.y + dy;
+            if (!checkCollision(nextX, nextY, activePiece.shape, grid)) {
+              setActivePiece({ ...activePiece, x: nextX, y: nextY });
+            } else if (dy > 0) {
+              lockPiece();
+            }
+          }, [gameState, activePiece, grid]);
+
+          const drop = () => {
+            if (gameState !== 'PLAYING' || !activePiece) return;
+            let tempY = activePiece.y;
+            while (!checkCollision(activePiece.x, tempY + 1, activePiece.shape, grid)) {
+              tempY++;
+            }
+            setActivePiece({ ...activePiece, y: tempY });
+          };
+
+          useEffect(() => {
+            if (gameState !== 'PLAYING') return;
+            gameLoopRef.current = setInterval(() => move(0, 1), speedRef.current);
+            return () => clearInterval(gameLoopRef.current);
+          }, [gameState, move]); 
+
+          useEffect(() => {
+            if (gameState !== 'PLAYING') return;
+            
+            const timerInterval = setInterval(() => {
+              setTimeLeft(prevTime => {
+                if (prevTime <= 1) {
+                  setGameState('GAMEOVER');
+                  return 0;
+                }
+                return prevTime - 1;
+              });
+            }, 1000);
+
+            return () => clearInterval(timerInterval);
+          }, [gameState]); 
+
+          useEffect(() => {
+            const handleKeyDown = (e) => {
+              if (gameState !== 'PLAYING') return;
+              if (e.key === 'ArrowLeft') move(-1, 0);
+              if (e.key === 'ArrowRight') move(1, 0);
+              if (e.key === 'ArrowDown') move(0, 1);
+              if (e.key === ' ') drop();
+            };
+            window.addEventListener('keydown', handleKeyDown);
+            return () => window.removeEventListener('keydown', handleKeyDown);
+          }, [gameState, move]);
+
+          const startGame = (lvl = 1) => {
+            setGrid(Array(GRID_H).fill(null).map(() => Array(GRID_W).fill(null)));
+            setScore(0);
+            setLevel(lvl);
+            const config = LEVEL_CONFIG[lvl] || LEVEL_CONFIG[10];
+            setTimeLeft(config.time);
+            speedRef.current = config.speed;
+            setCombo(0);
+            setClearedWords([]);
+            if (lvl === 1) setDiscoveredWords(new Set()); 
+            setGameState('PLAYING');
+            spawnPiece();
+          };
+
+          const closeDefinitionModal = () => {
+            setDefinitionModal(null);
+            setGameState('PLAYING');
+            applyGravity(grid);
+          };
+
+          return (
+            <div className="fixed inset-0 bg-slate-900 text-white font-sans flex flex-col overflow-hidden touch-none select-none">
+              <audio ref={audioRef} src={BGM_URL} loop />
+
+              {/* 頂部資訊欄 */}
+              {gameState !== 'HOME' && (
+                <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 h-[60px] shrink-0 z-20">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-400 font-bold">SCORE</span>
+                    <span className="text-xl font-mono leading-none">{score} <span className="text-xs text-slate-500">/ {LEVEL_CONFIG[level]?.target}</span></span>
+                  </div>
+                  
+                  <div className="flex flex-col items-center">
+                     <div className="text-xs font-bold text-yellow-500">LEVEL {level}</div>
+                     <div className={`text-xl font-mono leading-none flex items-center gap-1 ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                       <Clock size={16} /> {timeLeft}s <span className="text-xs text-green-400 ml-1">(+{3+level}s)</span>
+                     </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button onClick={() => setIsMuted(!isMuted)} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all">
+                      {isMuted ? <VolumeX size={20} className="text-red-400"/> : <Volume2 size={20} className="text-green-400"/>}
+                    </button>
+                    <button onClick={() => { if (gameState === 'PLAYING') setGameState('PAUSED'); setShowCollection(true); }} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all">
+                      <BookOpen size={20} className="text-blue-300" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* 遊戲主區域 */}
+              <div 
+                className="flex-1 relative flex items-center justify-center bg-slate-900 overflow-hidden"
+                onTouchStart={e => {
+                    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+                }}
+                onTouchEnd={e => {
+                    if (!touchStartRef.current || gameState !== 'PLAYING') return;
+                    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+                    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+                    const dt = Date.now() - touchStartRef.current.time;
+                    
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        if (Math.abs(dx) > 30) move(dx > 0 ? 1 : -1, 0);
+                    } else {
+                        if (dy > 30) move(0, 1);
+                        if (dy < -30) drop();
+                    }
+                }}
+              >
+                <div 
+                  className="grid gap-[1px] bg-slate-800/50 p-1 rounded border-2 border-slate-700"
+                  style={{
+                    gridTemplateColumns: `repeat(${GRID_W}, minmax(0, 1fr))`,
+                    width: 'min(95vw, 400px)',
+                    aspectRatio: `${GRID_W}/${GRID_H}`
+                  }}
+                >
+                  {grid.map((row, y) => (
+                    row.map((cell, x) => {
+                      let activeCell = null;
+                      if (activePiece) {
+                        const sy = y - activePiece.y;
+                        const sx = x - activePiece.x;
+                        if (sy >= 0 && sy < activePiece.shape.length && sx >= 0 && sx < activePiece.shape[0].length) {
+                          activeCell = activePiece.shape[sy][sx];
+                        }
+                      }
+
+                      const renderData = activeCell || cell;
+                      const isGhost = renderData && renderData.type === 'ghost';
+                      
+                      return (
+                        <div 
+                          key={`${x}-${y}`} 
+                          className={`
+                            w-full h-full rounded-[2px] flex items-center justify-center text-[10px] sm:text-xs font-bold overflow-hidden transition-colors duration-75
+                            ${renderData ? renderData.color : 'bg-slate-800/30'}
+                            ${isGhost ? 'opacity-40' : ''}
+                            ${activeCell && !isGhost ? 'ring-1 ring-white/80 z-10' : ''}
+                          `}
+                        >
+                          {renderData && !isGhost ? renderData.text : ''}
+                        </div>
+                      );
+                    })
+                  ))}
+                </div>
+
+                {clearedWords.length > 0 && !definitionModal && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-30 animate-fade-out pointer-events-none">
+                    <Sparkles className="text-yellow-400 w-16 h-16 mb-4 animate-bounce" />
+                    {clearedWords.map((word, i) => (
+                      <div key={i} className="text-4xl font-bold text-yellow-300 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] animate-pulse mb-2">
+                        {word.toUpperCase()}
+                      </div>
+                    ))}
+                    <div className="text-2xl text-green-400 mt-2 font-mono">+{100 * (combo)} pts</div>
+                    <div className="text-xl text-yellow-400 mt-1 font-mono">+{lastAddedTime} sec</div>
+                  </div>
+                )}
+              </div>
+
+              {/* 首頁 */}
+              {gameState === 'HOME' && (
+                <div className="absolute inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-6 text-center space-y-8">
+                   <div className="w-32 h-32 bg-slate-800 rounded-2xl flex items-center justify-center border-4 border-slate-700 shadow-2xl rotate-3">
+                      <span className="text-slate-600 font-bold text-xs">LOGO HERE</span>
+                   </div>
+
+                   <div>
+                     <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400 mb-2">
+                       Word Tetris
+                     </h1>
+                     <p className="text-slate-400 text-sm">Vocabulary Puzzle Game</p>
+                   </div>
+
+                   <div className="bg-slate-800/80 p-6 rounded-xl border border-slate-700 max-w-sm w-full backdrop-blur-sm">
+                     <h2 className="text-xl font-bold text-white mb-4 flex items-center justify-center gap-2">
+                       <Target className="text-red-400"/> Game Rules
+                     </h2>
+                     <ul className="text-left text-sm text-slate-300 space-y-3 mb-6">
+                       <li className="flex gap-2"><span className="text-blue-400">●</span> <b>如何操作</b>: 電腦用方向鍵/空白鍵，手機滑動控制。</li>
+                       <li className="flex gap-2"><span className="text-yellow-400">●</span> <b>如何過關</b>: 在時間結束前達到目標分數。</li>
+                       <li className="flex gap-2"><span className="text-slate-500">●</span> <b>查看提示</b>: 點擊右上角 <BookOpen size={16} className="inline text-blue-300"/> 查看單字表。</li>
+                     </ul>
+                     
+                     <div className="bg-slate-900 p-3 rounded-lg flex justify-between items-center mb-6">
+                       <span className="text-xs uppercase text-slate-500 font-bold">Level 1 Goal</span>
+                       <div className="text-right">
+                         <div className="text-white font-mono font-bold">{LEVEL_CONFIG[1].target} pts</div>
+                         <div className="text-xs text-red-400">{LEVEL_CONFIG[1].time} sec</div>
+                       </div>
+                     </div>
+
+                     <button onClick={() => startGame(1)} className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-xl shadow-lg shadow-green-900/40 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                       <Play fill="currentColor" /> START GAME
+                     </button>
+                   </div>
+                </div>
+              )}
+
+              {/* 彈窗 */}
+              {definitionModal && (
+                <div className="absolute inset-0 z-50 bg-slate-900/95 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-200">
+                   <div className="bg-slate-800 p-8 rounded-2xl border border-slate-600 shadow-2xl max-w-sm w-full">
+                     <BookOpen className="w-16 h-16 text-blue-400 mb-4 mx-auto animate-bounce" />
+                     <div className="text-sm text-yellow-500 font-bold tracking-widest uppercase mb-2">New Discovery</div>
+                     <div className="text-4xl font-bold text-white mb-4">{definitionModal.full}</div>
+                     <div className="space-y-4 mb-8">
+                       <div className="bg-slate-900/50 p-3 rounded-lg">
+                         <div className="text-2xl text-green-400 font-bold">{definitionModal.meaning_zh}</div>
+                       </div>
+                       <div className="bg-slate-900/50 p-3 rounded-lg">
+                         <div className="text-sm text-slate-300 italic">"{definitionModal.meaning_en}"</div>
+                       </div>
+                     </div>
+                     <button onClick={closeDefinitionModal} className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold shadow-lg shadow-blue-900/30">
+                       Continue
+                     </button>
+                   </div>
+                </div>
+              )}
+
+              {/* 收藏庫 */}
+              {showCollection && (
+                <div className="absolute inset-0 z-50 bg-slate-900/95 flex flex-col p-4 animate-in slide-in-from-bottom duration-200">
+                  <div className="flex justify-between items-center mb-4 shrink-0">
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-2"><BookOpen /> Collection</h2>
+                    <button onClick={() => { setShowCollection(false); if(gameState === 'PAUSED') setGameState('PLAYING'); }} className="p-2 bg-slate-800 rounded-full"><X /></button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                    {WORD_PAIRS.map(([p1, p2, full, reqLevel, zh, en], idx) => {
+                      const isLocked = reqLevel > level; 
+                      const isDiscovered = discoveredWords.has(full);
+                      if (reqLevel > Math.max(level, 1)) return null; 
+                      return (
+                        <div key={idx} className={`p-3 rounded-lg border ${isDiscovered ? 'bg-slate-800 border-green-500/50' : 'bg-slate-800/50 border-slate-700'}`}>
+                          <div className="flex justify-between items-center mb-1">
+                            <div className="flex items-center gap-1 font-mono text-sm">
+                              <span className="text-blue-400">{p1}</span>+<span className="text-orange-400">{p2}</span>
+                            </div>
+                            {isDiscovered ? (
+                               <span className="text-green-400 font-bold">{full}</span>
+                            ) : (
+                               <span className="text-slate-600 font-bold">???</span>
+                            )}
+                          </div>
+                          {isDiscovered && (
+                            <div className="text-xs text-slate-400 border-t border-slate-700/50 pt-2 mt-2">
+                               <span className="text-white mr-2">{zh}</span>
+                               <span className="italic text-slate-500">{en}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {gameState === 'PAUSED' && (
+                    <div className="mt-4 pt-4 border-t border-slate-700 shrink-0">
+                       <button onClick={() => { setGameState('HOME'); setShowCollection(false); }} className="w-full py-3 bg-red-600/20 text-red-400 rounded-xl font-bold border border-red-600/50 mb-2">Quit Game</button>
+                       <button onClick={() => { setShowCollection(false); setGameState('PLAYING'); }} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold">Resume</button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 結束/過關畫面 */}
+              {(gameState === 'GAMEOVER' || gameState === 'LEVEL_CLEARED') && (
+                <div className="absolute inset-0 z-50 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
+                   {gameState === 'LEVEL_CLEARED' ? (
+                     <>
+                        <h2 className="text-5xl font-bold text-yellow-400 mb-2">SUCCESS!</h2>
+                        <p className="text-white text-xl mb-8">Level {level} Complete</p>
+                        <div className="text-3xl font-mono mb-8 text-green-400">{score} pts</div>
+                        {level < 10 ? (
+                          <button onClick={() => startGame(level + 1)} className="px-8 py-4 bg-green-600 rounded-xl font-bold text-xl w-full max-w-xs flex items-center justify-center gap-2">
+                            Next Level <ChevronRight />
+                          </button>
+                        ) : (
+                          <div className="text-blue-300 text-lg mb-4">All Levels Completed!</div>
+                        )}
+                     </>
+                   ) : (
+                     <>
+                        <h2 className="text-5xl font-bold text-slate-500 mb-2">FAILED</h2>
+                        <p className="text-slate-400 text-lg mb-8">{timeLeft <= 0 ? "Time's Up!" : "Grid Full!"}</p>
+                        <div className="text-3xl font-mono mb-8 text-white">{score} pts</div>
+                        <button onClick={() => startGame(level)} className="px-8 py-4 bg-blue-600 rounded-xl font-bold text-xl w-full max-w-xs flex items-center justify-center gap-2">
+                          <Play /> Try Again
+                        </button>
+                     </>
+                   )}
+                   <button onClick={() => setGameState('HOME')} className="mt-4 text-slate-500 text-sm hover:text-white">Back to Home</button>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<WordTetris />);
+    </script>
+</body>
+</html>
