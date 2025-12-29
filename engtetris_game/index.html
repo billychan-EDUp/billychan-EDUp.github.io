@@ -617,14 +617,9 @@
               {/* 頂部資訊欄 */}
               {gameState !== 'HOME' && (
                 <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 h-[60px] shrink-0 z-20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-600 overflow-hidden p-0.5 shrink-0">
-                        <img src="logo.png" alt="Logo" className="w-full h-full object-contain" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-slate-400 font-bold">SCORE</span>
-                      <span className="text-xl font-mono leading-none">{score}</span>
-                    </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-400 font-bold">SCORE</span>
+                    <span className="text-xl font-mono leading-none">{score}</span>
                   </div>
                   
                   <div className="flex flex-col items-center">
@@ -653,9 +648,14 @@
                 {/* 1. 上方版塊：Logo 與 通知 */}
                 {gameState === 'PLAYING' && (
                   <div className="w-full flex flex-col items-center justify-center mb-2 px-4 shrink-0">
-                      <div className="bg-slate-800/80 border border-slate-600 rounded-lg px-4 py-2 text-sm text-yellow-300 font-bold shadow-sm w-full text-center truncate flex items-center justify-center gap-2">
-                          <Sparkles className="animate-spin-slow w-4 h-4 shrink-0 text-yellow-400" />
-                          <span className="truncate">{topMessage || "準備開始..."}</span>
+                      <div className="bg-slate-800/80 border border-slate-600 rounded-full px-4 py-2 text-sm text-yellow-300 font-bold shadow-sm w-full text-center truncate flex items-center justify-center gap-3">
+                          <div className="w-6 h-6 bg-slate-950 rounded-full border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                              <img src="logo.png" alt="Logo" className="w-full h-full object-contain" />
+                          </div>
+                          <div className="flex items-center gap-2 truncate">
+                              <Sparkles className="animate-spin-slow w-4 h-4 shrink-0 text-yellow-400" />
+                              <span className="truncate">{topMessage || "準備開始..."}</span>
+                          </div>
                       </div>
                   </div>
                 )}
@@ -735,32 +735,32 @@
                 </div>
 
                 {/* 3. 下方控制區 (Virtual Controls) */}
-                <div className="w-full mt-4 px-6 shrink-0 grid grid-cols-3 gap-4 h-24 mb-4">
+                <div className="w-full mt-2 px-8 shrink-0 grid grid-cols-3 gap-3 h-14 mb-2">
                     {/* 左 */}
                     <button 
-                      className="bg-slate-800/80 rounded-2xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
+                      className="bg-slate-800/80 rounded-xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
                       onTouchStart={(e) => { e.preventDefault(); move(-1, 0); }}
                       onClick={() => move(-1, 0)}
                     >
-                      <ArrowLeft size={32} className="text-slate-300" />
+                      <ArrowLeft size={24} className="text-slate-300" />
                     </button>
                     
                     {/* 下 (加速) */}
                     <button 
-                      className="bg-slate-800/80 rounded-2xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
+                      className="bg-slate-800/80 rounded-xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
                       onTouchStart={(e) => { e.preventDefault(); move(0, 1); }}
                       onClick={() => move(0, 1)}
                     >
-                      <ArrowDown size={32} className="text-slate-300" />
+                      <ArrowDown size={24} className="text-slate-300" />
                     </button>
 
                     {/* 右 */}
                     <button 
-                      className="bg-slate-800/80 rounded-2xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
+                      className="bg-slate-800/80 rounded-xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
                       onTouchStart={(e) => { e.preventDefault(); move(1, 0); }}
                       onClick={() => move(1, 0)}
                     >
-                      <ArrowRight size={32} className="text-slate-300" />
+                      <ArrowRight size={24} className="text-slate-300" />
                     </button>
                 </div>
 
