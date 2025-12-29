@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Word Tetris: 詞綴方塊</title>
+    <title>Husky STEAM Lab Word Tetris</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -172,6 +172,7 @@
           
           const [discoveredWords, setDiscoveredWords] = useState(new Set());
           const [definitionModal, setDefinitionModal] = useState(null);
+          // Removed bonusNotification state since unlock bonus is cancelled
           const [topMessage, setTopMessage] = useState(null); 
           
           const [isMuted, setIsMuted] = useState(false);
@@ -617,6 +618,9 @@
               {gameState !== 'HOME' && (
                 <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 h-[60px] shrink-0 z-20">
                   <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-600 overflow-hidden p-0.5 shrink-0">
+                        <img src="logo2.png" alt="Logo" className="w-full h-full object-contain" />
+                    </div>
                     <div className="flex flex-col">
                       <span className="text-xs text-slate-400 font-bold">SCORE</span>
                       <span className="text-xl font-mono leading-none">{score}</span>
@@ -646,17 +650,12 @@
                 className="flex-1 relative flex flex-col items-center justify-center bg-slate-900 overflow-hidden w-full max-w-md mx-auto"
               >
                 
-                {/* 1. 上方版塊：Logo 與 通知 */}
+                {/* 1. 上方版塊：通知 (Logo removed from here) */}
                 {gameState === 'PLAYING' && (
                   <div className="w-full flex flex-col items-center justify-center mb-2 px-4 shrink-0">
-                      <div className="bg-slate-800/80 border border-slate-600 rounded-full px-4 py-2 text-sm text-yellow-300 font-bold shadow-sm w-full text-center truncate flex items-center justify-center gap-3">
-                          <div className="w-6 h-6 bg-slate-950 rounded-full border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
-                              <img src="logo.png" alt="Logo" className="w-full h-full object-contain" />
-                          </div>
-                          <div className="flex items-center gap-2 truncate">
-                              <Sparkles className="animate-spin-slow w-4 h-4 shrink-0 text-yellow-400" />
-                              <span className="truncate">{topMessage || "準備開始..."}</span>
-                          </div>
+                      <div className="bg-slate-800/80 border border-slate-600 rounded-full px-4 py-2 text-sm text-yellow-300 font-bold shadow-sm w-full text-center truncate flex items-center justify-center gap-2">
+                          <Sparkles className="animate-spin-slow w-4 h-4 shrink-0 text-yellow-400" />
+                          <span className="truncate">{topMessage || "準備開始..."}</span>
                       </div>
                   </div>
                 )}
