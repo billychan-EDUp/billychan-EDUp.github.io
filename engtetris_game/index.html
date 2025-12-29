@@ -172,7 +172,6 @@
           
           const [discoveredWords, setDiscoveredWords] = useState(new Set());
           const [definitionModal, setDefinitionModal] = useState(null);
-          // Removed bonusNotification state since unlock bonus is cancelled
           const [topMessage, setTopMessage] = useState(null); 
           
           const [isMuted, setIsMuted] = useState(false);
@@ -617,9 +616,11 @@
               {/* 頂部資訊欄 */}
               {gameState !== 'HOME' && (
                 <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 h-[60px] shrink-0 z-20">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-slate-400 font-bold">SCORE</span>
-                    <span className="text-xl font-mono leading-none">{score}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-slate-400 font-bold">SCORE</span>
+                      <span className="text-xl font-mono leading-none">{score}</span>
+                    </div>
                   </div>
                   
                   <div className="flex flex-col items-center">
@@ -735,14 +736,14 @@
                 </div>
 
                 {/* 3. 下方控制區 (Virtual Controls) */}
-                <div className="w-full mt-2 px-8 shrink-0 grid grid-cols-3 gap-3 h-14 mb-2">
+                <div className="w-full mt-2 px-4 shrink-0 grid grid-cols-3 gap-2 h-12 mb-2">
                     {/* 左 */}
                     <button 
                       className="bg-slate-800/80 rounded-xl flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-lg btn-active"
                       onTouchStart={(e) => { e.preventDefault(); move(-1, 0); }}
                       onClick={() => move(-1, 0)}
                     >
-                      <ArrowLeft size={24} className="text-slate-300" />
+                      <ArrowLeft size={18} className="text-slate-300" />
                     </button>
                     
                     {/* 下 (加速) */}
@@ -751,7 +752,7 @@
                       onTouchStart={(e) => { e.preventDefault(); move(0, 1); }}
                       onClick={() => move(0, 1)}
                     >
-                      <ArrowDown size={24} className="text-slate-300" />
+                      <ArrowDown size={18} className="text-slate-300" />
                     </button>
 
                     {/* 右 */}
@@ -760,7 +761,7 @@
                       onTouchStart={(e) => { e.preventDefault(); move(1, 0); }}
                       onClick={() => move(1, 0)}
                     >
-                      <ArrowRight size={24} className="text-slate-300" />
+                      <ArrowRight size={18} className="text-slate-300" />
                     </button>
                 </div>
 
