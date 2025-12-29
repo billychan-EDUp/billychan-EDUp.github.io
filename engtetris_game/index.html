@@ -26,6 +26,12 @@
         }
         .animate-fade-out { animation: fade-out 1.5s forwards ease-out; }
         
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow { animation: spin-slow 3s linear infinite; }
+
         /* 防止手機端雙擊縮放和長按選取 */
         body {
             touch-action: none;
@@ -68,7 +74,6 @@
         const Sparkles = (props) => <IconWrapper {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M9 5h4" /><path d="M19 17v4" /><path d="M15 19h4" /></IconWrapper>;
         const Lock = (props) => <IconWrapper {...props}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></IconWrapper>;
         const BookOpen = (props) => <IconWrapper {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></IconWrapper>;
-        const Clock = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></IconWrapper>;
         const Target = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></IconWrapper>;
         const X = (props) => <IconWrapper {...props}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></IconWrapper>;
         const ChevronRight = (props) => <IconWrapper {...props}><polyline points="9 18 15 12 9 6" /></IconWrapper>;
@@ -76,62 +81,49 @@
         const VolumeX = (props) => <IconWrapper {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></IconWrapper>;
 
         // --- 遊戲資料庫 ---
-        const WORD_PAIRS = [
-          // Level 1: 基礎入門 (4組)
+        const WORD_PAIRS_DATA = [
           ['help', 'er', 'helper', 1, '助手', 'A person who helps'],
           ['play', 'er', 'player', 1, '玩家', 'A person taking part in a game'],
           ['teach', 'er', 'teacher', 1, '教師', 'A person who teaches'],
           ['un', 'happy', 'unhappy', 1, '不快樂的', 'Not happy'],
-          
-          // Level 2: +2 (Total 6)
           ['help', 'less', 'helpless', 2, '無助的', 'Unable to help oneself'],
           ['kind', 'ness', 'kindness', 2, '仁慈', 'The quality of being friendly'],
-
-          // Level 3: +2 (Total 8)
           ['dis', 'like', 'dislike', 3, '不喜歡', 'Feel distaste for'],
           ['mis', 'take', 'mistake', 3, '錯誤', 'An action or judgment that is wrong'],
-
-          // Level 4: +2 (Total 10)
           ['pre', 'view', 'preview', 4, '預覽', 'An inspection before it is available'],
           ['re', 'view', 'review', 4, '複習', 'A formal assessment'],
-
-          // Level 5: +2 (Total 12)
           ['im', 'possible', 'impossible', 5, '不可能的', 'Not able to occur'],
           ['in', 'active', 'inactive', 5, '不活躍的', 'Not engaging in physical activity'],
-
-          // Level 6: +2 (Total 14)
           ['slow', 'ly', 'slowly', 6, '緩慢地', 'At a slow speed'],
           ['quick', 'ly', 'quickly', 6, '快速地', 'At a fast speed'],
-
-          // Level 7: +2 (Total 16)
           ['home', 'work', 'homework', 7, '家庭作業', 'Schoolwork done at home'],
           ['foot', 'ball', 'football', 7, '足球', 'A game played with a ball'],
-
-          // Level 8: +2 (Total 18)
           ['sun', 'flower', 'sunflower', 8, '向日葵', 'A tall plant with yellow flowers'],
           ['friend', 'ship', 'friendship', 8, '友誼', 'The emotions or conduct of friends'],
-
-          // Level 9: +2 (Total 20)
           ['inter', 'view', 'interview', 9, '面試', 'A meeting of people face to face'],
           ['super', 'man', 'superman', 9, '超人', 'A man with superhuman powers'],
-
-          // Level 10: +2 (Total 22)
           ['use', 'ful', 'useful', 10, '有用的', 'Able to be used for a practical purpose'],
-          ['use', 'less', 'useless', 10, '無用的', 'Not fulfilling an intended purpose']
+          ['use', 'less', 'useless', 10, '無用的', 'Not fulfilling an intended purpose'],
+          ['move', 'ment', 'movement', 6, '移動', 'An act of changing physical location'],
+          ['state', 'ment', 'statement', 6, '聲明', 'A definite or clear expression'],
+          ['enjoy', 'able', 'enjoyable', 6, '愉快的', 'Giving delight or pleasure'],
+          ['break', 'able', 'breakable', 6, '易碎的', 'Capable of being broken'],
+          ['care', 'ful', 'careful', 7, '小心的', 'Making sure of avoiding potential danger'],
+          ['hope', 'ful', 'hopeful', 7, '充滿希望的', 'Feeling or inspiring optimism'],
+          ['color', 'less', 'colorless', 7, '無色的', 'Without color'],
+          ['home', 'less', 'homeless', 7, '無家可歸的', 'Without a home'],
+          ['mid', 'night', 'midnight', 8, '午夜', 'Twelve o\'clock at night'],
+          ['mid', 'day', 'midday', 8, '正午', 'The middle of the day'],
+          ['over', 'cook', 'overcook', 8, '煮過頭', 'Cook too much'],
+          ['over', 'heat', 'overheat', 8, '過熱', 'Make or become too hot'],
+          ['inter', 'net', 'internet', 9, '網際網路', 'A global computer network'],
+          ['ex', 'port', 'export', 9, '出口', 'Send goods to another country'],
+          ['im', 'port', 'import', 9, '進口', 'Bring goods into a country'],
+          ['trans', 'form', 'transform', 10, '改變', 'Make a thorough or dramatic change'],
+          ['trans', 'port', 'transport', 10, '運輸', 'Take or carry from one place to another'],
+          ['sub', 'way', 'subway', 10, '地鐵', 'An underground electric railroad'],
+          ['sub', 'marine', 'submarine', 10, '潛水艇', 'A warship with a streamlined hull designed to operate completely submerged']
         ];
-
-        const LEVEL_CONFIG = {
-          1: { target: 400, time: 60, speed: 900 },
-          2: { target: 800, time: 70, speed: 850 },
-          3: { target: 1200, time: 80, speed: 800 },
-          4: { target: 1600, time: 90, speed: 750 },
-          5: { target: 2000, time: 100, speed: 700 },
-          6: { target: 2500, time: 110, speed: 650 },
-          7: { target: 3000, time: 120, speed: 600 },
-          8: { target: 3600, time: 130, speed: 550 },
-          9: { target: 4200, time: 140, speed: 500 },
-          10: { target: 5000, time: 150, speed: 450 },
-        };
 
         const GRID_W = 10;
         const GRID_H = 14; 
@@ -159,30 +151,35 @@
           return COLORS.root; 
         };
 
-        // BGM URL (Lo-Fi)
-        const BGM_URL = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3";
+        // BGM URL (Tetris Theme - Korobeiniki)
+        const BGM_URL = "https://ia800504.us.archive.org/33/items/TetrisThemeMusic/Tetris.mp3";
 
         function WordTetris() {
           const [grid, setGrid] = useState(Array(GRID_H).fill(null).map(() => Array(GRID_W).fill(null)));
           const [activePiece, setActivePiece] = useState(null); 
           const [score, setScore] = useState(0);
-          const [level, setLevel] = useState(1);
-          const [timeLeft, setTimeLeft] = useState(60);
           const [gameState, setGameState] = useState('HOME'); 
           
           const [showCollection, setShowCollection] = useState(false);
           const [clearedWords, setClearedWords] = useState([]); 
           const [combo, setCombo] = useState(0);
-          const [lastAddedTime, setLastAddedTime] = useState(0); 
+          
           const [discoveredWords, setDiscoveredWords] = useState(new Set());
           const [definitionModal, setDefinitionModal] = useState(null);
+          // Removed bonusNotification state since unlock bonus is cancelled
+          const [topMessage, setTopMessage] = useState(null); 
           
           const [isMuted, setIsMuted] = useState(false);
           const audioRef = useRef(null);
 
           const gameLoopRef = useRef();
-          const speedRef = useRef(800);
+          const speedRef = useRef(900); 
           const touchStartRef = useRef(null);
+
+          // 無盡模式狀態
+          const [shuffledPairs, setShuffledPairs] = useState([]); 
+          const [unlockedCount, setUnlockedCount] = useState(2); 
+          const [nextUnlockScore, setNextUnlockScore] = useState(500);
 
           const speakWord = (word) => {
             if ('speechSynthesis' in window) {
@@ -195,7 +192,7 @@
 
           useEffect(() => {
             if (audioRef.current) {
-              audioRef.current.volume = 0.4;
+              audioRef.current.volume = 0.3; 
               if (gameState === 'PLAYING' && !isMuted) {
                 const playPromise = audioRef.current.play();
                 if (playPromise !== undefined) {
@@ -207,13 +204,16 @@
             }
           }, [gameState, isMuted]);
 
-          const getAvailableParts = useCallback((currentLevel) => {
-            const validPairs = WORD_PAIRS.filter(p => p[3] <= currentLevel);
-            return Array.from(new Set(validPairs.flatMap(p => [p[0], p[1]])));
-          }, []);
+          const getAvailableParts = useCallback(() => {
+            if (shuffledPairs.length === 0) return [];
+            const activePairs = shuffledPairs.slice(0, unlockedCount);
+            return Array.from(new Set(activePairs.flatMap(p => [p[0], p[1]])));
+          }, [shuffledPairs, unlockedCount]);
 
           const spawnPiece = useCallback(() => {
-            const availableParts = getAvailableParts(level);
+            if (shuffledPairs.length === 0) return;
+
+            const availableParts = getAvailableParts();
             
             const partsByType = { prefix: [], root: [], suffix: [] };
             availableParts.forEach(p => {
@@ -234,9 +234,9 @@
             let hasLeft = false;
             let hasUp = false;
 
-            const validPairs = WORD_PAIRS.filter(p => p[3] <= level);
+            const activePairs = shuffledPairs.slice(0, unlockedCount);
 
-            validPairs.forEach(pair => {
+            activePairs.forEach(pair => {
               if (pair[0] === selectedPart) {
                 hasRight = true;
                 hasDown = true;
@@ -279,8 +279,9 @@
             } else {
               setActivePiece(newPiece);
             }
-          }, [grid, level, getAvailableParts]);
+          }, [grid, shuffledPairs, unlockedCount, getAvailableParts]);
 
+          // 修改：碰撞檢測邏輯 (虛擬塊不應被牆壁擋著)
           const checkCollision = (pieceX, pieceY, shape, currentGrid, isSpawnCheck = false) => {
             for (let y = 0; y < shape.length; y++) {
               for (let x = 0; x < shape[y].length; x++) {
@@ -289,12 +290,24 @@
                   const targetY = pieceY + y;
                   const pieceCellType = shape[y][x].type;
 
-                  if (targetX < 0 || targetX >= GRID_W || targetY >= GRID_H) return true;
+                  // 1. 邊界檢查
+                  if (targetX < 0 || targetX >= GRID_W || targetY >= GRID_H) {
+                    // 實體塊 (Word) 必須在邊界內
+                    if (pieceCellType === 'word') return true;
+                    // 虛擬塊 (Ghost) 可以穿牆/出界 -> 忽略
+                    if (pieceCellType === 'ghost') continue;
+                  }
 
-                  if (targetY >= 0) {
+                  // 2. 網格佔用檢查 (確保在網格範圍內才檢查)
+                  if (targetY >= 0 && targetX >= 0 && targetX < GRID_W) {
                     const gridCell = currentGrid[targetY][targetX];
+                    
                     if (gridCell === null) continue;
+
+                    // Ghost 不受任何阻擋 (忽略網格上的任何東西)
                     if (pieceCellType === 'ghost') continue; 
+
+                    // Word 可以覆蓋網格上的 Ghost，但不能穿過 Word
                     if (pieceCellType === 'word') {
                       if (gridCell.type === 'ghost') continue;
                       if (gridCell.type === 'word') return true;
@@ -406,7 +419,7 @@
 
           const checkWordPair = (part1, part2) => {
             const combined = part1 + part2;
-            const found = WORD_PAIRS.find(p => p[2] === combined);
+            const found = WORD_PAIRS_DATA.find(p => p[2] === combined);
             if (found) {
               return { full: found[2], meaning_zh: found[4], meaning_en: found[5] };
             }
@@ -417,34 +430,34 @@
             let points = 0;
             const newClearedWords = [];
             let newDiscovery = null;
-            let timeBonus = 0; 
 
             const cellsToClear = new Set();
             const newlyFoundWords = []; 
 
             matches.forEach(m => {
-              points += 100 * (combo + 1); 
+              // 檢查是否為首度發現 (Discovery)
+              let isDiscovery = !discoveredWords.has(m.wordInfo.full) && !newlyFoundWords.includes(m.wordInfo.full);
               
-              const bonus = 3 + level; 
-              timeBonus += bonus; 
-              
-              newClearedWords.push(m.wordInfo.full);
-              
-              if (!discoveredWords.has(m.wordInfo.full) && !newlyFoundWords.includes(m.wordInfo.full)) {
+              // 計分邏輯調整
+              let matchScore = 0;
+              let baseScore = 100 * (combo + 1);
+
+              if (isDiscovery) {
+                // 首度發現: 基礎分 + 200分 (Discovery Bonus)
+                matchScore = baseScore + 200;
                 newDiscovery = m.wordInfo;
                 newlyFoundWords.push(m.wordInfo.full);
+              } else {
+                // 舊詞: 維持 100 分
+                matchScore = baseScore;
               }
+              
+              points += matchScore;
+              newClearedWords.push(m.wordInfo.full);
 
               m.cells.forEach(pos => {
                 cellsToClear.add(`${pos.x},${pos.y}`);
-                
-                const neighbors = [
-                  {x: pos.x + 1, y: pos.y},
-                  {x: pos.x - 1, y: pos.y},
-                  {x: pos.x, y: pos.y + 1},
-                  {x: pos.x, y: pos.y - 1}
-                ];
-                
+                const neighbors = [{x: pos.x + 1, y: pos.y}, {x: pos.x - 1, y: pos.y}, {x: pos.x, y: pos.y + 1}, {x: pos.x, y: pos.y - 1}];
                 neighbors.forEach(n => {
                   if (n.x >= 0 && n.x < GRID_W && n.y >= 0 && n.y < GRID_H) {
                     const cell = currentGrid[n.y][n.x];
@@ -470,9 +483,24 @@
               speakWord(newDiscovery.full);
             }
 
-            setScore(prev => prev + points);
-            setTimeLeft(prev => prev + timeBonus); 
-            setLastAddedTime(timeBonus);
+            let currentScore = score + points;
+            
+            // --- 解鎖新單字邏輯 (無盡模式) ---
+            if (currentScore >= nextUnlockScore && unlockedCount < shuffledPairs.length) {
+              const newWordPair = shuffledPairs[unlockedCount]; // 抓取即將解鎖的單字
+              setUnlockedCount(prev => prev + 1);
+              setNextUnlockScore(prev => prev + 500); 
+              
+              // 解鎖獎勵：取消 (bonusPoints = 0)
+              
+              // 永久更新頂部通知
+              setTopMessage(`新解鎖: ${newWordPair[2]}`); 
+
+              // 稍微加快速度
+              speedRef.current = Math.max(100, 900 - Math.floor((currentScore) / 1000) * 50);
+            }
+
+            setScore(currentScore);
             setClearedWords(newClearedWords);
             setCombo(prev => prev + 1);
             
@@ -493,12 +521,6 @@
             const newGrid = applyGravityImmediate(currentGrid);
             setGrid(newGrid);
             
-            const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[10]; 
-            if (score >= config.target && timeLeft > 0) {
-              setGameState('LEVEL_CLEARED');
-              return;
-            }
-
             setTimeout(() => {
               const newMatches = findMatches(newGrid);
               if (newMatches.length > 0) {
@@ -537,22 +559,6 @@
           }, [gameState, move]); 
 
           useEffect(() => {
-            if (gameState !== 'PLAYING') return;
-            
-            const timerInterval = setInterval(() => {
-              setTimeLeft(prevTime => {
-                if (prevTime <= 1) {
-                  setGameState('GAMEOVER');
-                  return 0;
-                }
-                return prevTime - 1;
-              });
-            }, 1000);
-
-            return () => clearInterval(timerInterval);
-          }, [gameState]); 
-
-          useEffect(() => {
             const handleKeyDown = (e) => {
               if (gameState !== 'PLAYING') return;
               if (e.key === 'ArrowLeft') move(-1, 0);
@@ -564,19 +570,33 @@
             return () => window.removeEventListener('keydown', handleKeyDown);
           }, [gameState, move]);
 
-          const startGame = (lvl = 1) => {
+          const startGame = () => {
+            const shuffled = [...WORD_PAIRS_DATA].sort(() => Math.random() - 0.5);
+            setShuffledPairs(shuffled);
+            
+            // 初始狀態: 2個單字
+            const initialCount = 2;
+            setUnlockedCount(initialCount); 
+            setNextUnlockScore(500); 
+            speedRef.current = 900;
+            
+            // 設定初始的通知訊息
+            const startWords = shuffled.slice(0, initialCount).map(p => p[2]).join(', ');
+            setTopMessage(`初始單字: ${startWords}`);
+
             setGrid(Array(GRID_H).fill(null).map(() => Array(GRID_W).fill(null)));
             setScore(0);
-            setLevel(lvl);
-            const config = LEVEL_CONFIG[lvl] || LEVEL_CONFIG[10];
-            setTimeLeft(config.time);
-            speedRef.current = config.speed;
             setCombo(0);
             setClearedWords([]);
-            if (lvl === 1) setDiscoveredWords(new Set()); 
             setGameState('PLAYING');
-            spawnPiece();
           };
+
+          // 觸發生成初始方塊
+          useEffect(() => {
+            if (gameState === 'PLAYING' && activePiece === null && shuffledPairs.length > 0) {
+                spawnPiece();
+            }
+          }, [gameState, shuffledPairs, activePiece, spawnPiece]);
 
           const closeDefinitionModal = () => {
             setDefinitionModal(null);
@@ -593,13 +613,13 @@
                 <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 h-[60px] shrink-0 z-20">
                   <div className="flex flex-col">
                     <span className="text-xs text-slate-400 font-bold">SCORE</span>
-                    <span className="text-xl font-mono leading-none">{score} <span className="text-xs text-slate-500">/ {LEVEL_CONFIG[level]?.target}</span></span>
+                    <span className="text-xl font-mono leading-none">{score}</span>
                   </div>
                   
                   <div className="flex flex-col items-center">
-                     <div className="text-xs font-bold text-yellow-500">LEVEL {level}</div>
-                     <div className={`text-xl font-mono leading-none flex items-center gap-1 ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-                       <Clock size={16} /> {timeLeft}s <span className="text-xs text-green-400 ml-1">(+{3+level}s)</span>
+                     <div className="text-xs font-bold text-yellow-500">WORDS UNLOCKED</div>
+                     <div className="text-xl font-mono leading-none flex items-center gap-1 text-white">
+                       <BookOpen size={16} /> {Math.min(unlockedCount, shuffledPairs.length)} / {shuffledPairs.length}
                      </div>
                   </div>
 
@@ -624,7 +644,6 @@
                     if (!touchStartRef.current || gameState !== 'PLAYING') return;
                     const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
                     const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
-                    const dt = Date.now() - touchStartRef.current.time;
                     
                     if (Math.abs(dx) > Math.abs(dy)) {
                         if (Math.abs(dx) > 30) move(dx > 0 ? 1 : -1, 0);
@@ -635,7 +654,7 @@
                 }}
               >
                 <div 
-                  className="grid gap-[1px] bg-slate-800/50 p-1 rounded border-2 border-slate-700"
+                  className="grid gap-[1px] bg-slate-800/50 p-1 rounded border-2 border-slate-700 relative"
                   style={{
                     gridTemplateColumns: `repeat(${GRID_W}, minmax(0, 1fr))`,
                     width: 'min(95vw, 400px)',
@@ -671,8 +690,19 @@
                       );
                     })
                   ))}
+
+                  {/* 頂部常駐訊息 (新詞/初始單字) */}
+                  {topMessage && (
+                    <div className="absolute top-4 left-0 right-0 flex justify-center z-50 pointer-events-none animate-in slide-in-from-top fade-in duration-300 px-4">
+                      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-full shadow-[0_4px_10px_rgba(0,0,0,0.3)] font-bold text-xs md:text-sm flex items-center gap-2 border-2 border-white/50 text-center max-w-full truncate">
+                        <Sparkles className="animate-spin-slow w-4 h-4 shrink-0" />
+                        <span className="truncate">{topMessage}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
+                {/* 消除特效 */}
                 {clearedWords.length > 0 && !definitionModal && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-30 animate-fade-out pointer-events-none">
                     <Sparkles className="text-yellow-400 w-16 h-16 mb-4 animate-bounce" />
@@ -682,45 +712,67 @@
                       </div>
                     ))}
                     <div className="text-2xl text-green-400 mt-2 font-mono">+{100 * (combo)} pts</div>
-                    <div className="text-xl text-yellow-400 mt-1 font-mono">+{lastAddedTime} sec</div>
                   </div>
                 )}
               </div>
 
               {/* 首頁 */}
               {gameState === 'HOME' && (
-                <div className="absolute inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-6 text-center space-y-8">
-                   <div className="w-32 h-32 bg-slate-800 rounded-2xl flex items-center justify-center border-4 border-slate-700 shadow-2xl rotate-3 overflow-hidden">
+                <div className="absolute inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-4 text-center space-y-4">
+                   <div className="w-24 h-24 bg-slate-800 rounded-2xl flex items-center justify-center border-4 border-slate-700 shadow-2xl rotate-3 overflow-hidden shrink-0">
                       <img src="logo.png" alt="Logo" className="w-full h-full object-contain" />
                    </div>
 
-                   <div>
-                     <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400 mb-2">
+                   <div className="shrink-0">
+                     <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400 mb-1">
                        Word Tetris
                      </h1>
-                     <p className="text-slate-400 text-sm">Vocabulary Puzzle Game</p>
+                     <p className="text-slate-400 text-xs">Vocabulary Puzzle Game</p>
                    </div>
 
-                   <div className="bg-slate-800/80 p-6 rounded-xl border border-slate-700 max-w-sm w-full backdrop-blur-sm">
-                     <h2 className="text-xl font-bold text-white mb-4 flex items-center justify-center gap-2">
-                       <Target className="text-red-400"/> Game Rules
-                     </h2>
-                     <ul className="text-left text-sm text-slate-300 space-y-3 mb-6">
-                       <li className="flex gap-2"><span className="text-blue-400">●</span> <b>如何操作</b>: 電腦用方向鍵/空白鍵，手機滑動控制。</li>
-                       <li className="flex gap-2"><span className="text-yellow-400">●</span> <b>如何過關</b>: 在時間結束前達到目標分數。</li>
-                       <li className="flex gap-2"><span className="text-slate-500">●</span> <b>查看提示</b>: 點擊右上角 <BookOpen size={16} className="inline text-blue-300"/> 查看單字表。</li>
-                     </ul>
+                   <div className="bg-slate-800/90 p-5 rounded-xl border border-slate-700 max-w-sm w-full backdrop-blur-sm overflow-y-auto custom-scrollbar flex-1 min-h-0 flex flex-col">
                      
-                     <div className="bg-slate-900 p-3 rounded-lg flex justify-between items-center mb-6">
-                       <span className="text-xs uppercase text-slate-500 font-bold">Level 1 Goal</span>
-                       <div className="text-right">
-                         <div className="text-white font-mono font-bold">{LEVEL_CONFIG[1].target} pts</div>
-                         <div className="text-xs text-red-400">{LEVEL_CONFIG[1].time} sec</div>
-                       </div>
+                     {/* 詞綴解釋區塊 */}
+                     <div className="mb-4 bg-slate-900/60 p-3 rounded-lg text-left border border-slate-700 shrink-0">
+                        <h3 className="text-yellow-400 font-bold mb-2 text-sm flex items-center gap-2 border-b border-slate-700/50 pb-1">
+                          <BookOpen size={16}/> 什麼是詞綴 (Affixes)?
+                        </h3>
+                        <div className="text-xs text-slate-300 space-y-3">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">Prefix 前綴</span>
+                                <span className="text-slate-400">放在單字開頭</span>
+                            </div>
+                            <div className="pl-2 border-l-2 border-blue-500/30 text-slate-400">
+                              改變意思。例: <span className="text-blue-400 font-bold">un</span>(不) + happy = <span className="text-white">unhappy</span>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="bg-orange-500 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">Suffix 後綴</span>
+                                <span className="text-slate-400">放在單字結尾</span>
+                            </div>
+                            <div className="pl-2 border-l-2 border-orange-500/30 text-slate-400">
+                              改變詞性。例: teach + <span className="text-orange-400 font-bold">er</span>(人) = <span className="text-white">teacher</span>
+                            </div>
+                          </div>
+                        </div>
                      </div>
 
-                     <button onClick={() => startGame(1)} className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-xl shadow-lg shadow-green-900/40 active:scale-95 transition-transform flex items-center justify-center gap-2">
-                       <Play fill="currentColor" /> START GAME
+                     <div className="border-t border-slate-700/50 my-2"></div>
+
+                     <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2 shrink-0">
+                       <Target className="text-red-400" size={18}/> 遊戲規則
+                     </h2>
+                     <ul className="text-left text-xs text-slate-300 space-y-2 mb-6 flex-1">
+                       <li className="flex gap-2"><span className="text-blue-400">●</span> <b>學習目標</b>: 熟悉英語詞綴組合 (Prefix/Suffix)。</li>
+                       <li className="flex gap-2"><span className="text-yellow-400">●</span> <b>如何操作</b>: 電腦用方向鍵/空白鍵，手機滑動控制。</li>
+                       <li className="flex gap-2"><span className="text-slate-500">●</span> <b>遊戲目標</b>: 盡量取得高分！每 500 分解鎖新詞。</li>
+                       <li className="flex gap-2"><span className="text-green-400">●</span> <b>查看提示</b>: 點擊右上角書本圖示 <BookOpen size={12} className="inline"/>。</li>
+                     </ul>
+                     
+                     <button onClick={startGame} className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-lg shadow-lg shadow-green-900/40 active:scale-95 transition-transform flex items-center justify-center gap-2 shrink-0">
+                       <Play fill="currentColor" size={20} /> 開始遊戲
                      </button>
                    </div>
                 </div>
@@ -755,11 +807,11 @@
                     <h2 className="text-2xl font-bold text-white flex items-center gap-2"><BookOpen /> Collection</h2>
                     <button onClick={() => { setShowCollection(false); if(gameState === 'PAUSED') setGameState('PLAYING'); }} className="p-2 bg-slate-800 rounded-full"><X /></button>
                   </div>
+                  <div className="text-sm text-slate-400 mb-2 px-2">Current Session Unlocks ({Math.min(unlockedCount, shuffledPairs.length)}/{shuffledPairs.length})</div>
                   <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                    {WORD_PAIRS.map(([p1, p2, full, reqLevel, zh, en], idx) => {
-                      const isLocked = reqLevel > level; 
+                    {/* 只顯示目前這局已解鎖 (在 shuffledPairs 範圍內) 的單字 */}
+                    {shuffledPairs.slice(0, unlockedCount).map(([p1, p2, full, reqLevel, zh, en], idx) => {
                       const isDiscovered = discoveredWords.has(full);
-                      if (reqLevel > Math.max(level, 1)) return null; 
                       return (
                         <div key={idx} className={`p-3 rounded-lg border ${isDiscovered ? 'bg-slate-800 border-green-500/50' : 'bg-slate-800/50 border-slate-700'}`}>
                           <div className="flex justify-between items-center mb-1">
@@ -791,32 +843,26 @@
                 </div>
               )}
 
-              {/* 結束/過關畫面 */}
-              {(gameState === 'GAMEOVER' || gameState === 'LEVEL_CLEARED') && (
+              {/* 結束畫面 */}
+              {gameState === 'GAMEOVER' && (
                 <div className="absolute inset-0 z-50 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
-                   {gameState === 'LEVEL_CLEARED' ? (
-                     <>
-                        <h2 className="text-5xl font-bold text-yellow-400 mb-2">SUCCESS!</h2>
-                        <p className="text-white text-xl mb-8">Level {level} Complete</p>
-                        <div className="text-3xl font-mono mb-8 text-green-400">{score} pts</div>
-                        {level < 10 ? (
-                          <button onClick={() => startGame(level + 1)} className="px-8 py-4 bg-green-600 rounded-xl font-bold text-xl w-full max-w-xs flex items-center justify-center gap-2">
-                            Next Level <ChevronRight />
-                          </button>
-                        ) : (
-                          <div className="text-blue-300 text-lg mb-4">All Levels Completed!</div>
-                        )}
-                     </>
-                   ) : (
-                     <>
-                        <h2 className="text-5xl font-bold text-slate-500 mb-2">FAILED</h2>
-                        <p className="text-slate-400 text-lg mb-8">{timeLeft <= 0 ? "Time's Up!" : "Grid Full!"}</p>
-                        <div className="text-3xl font-mono mb-8 text-white">{score} pts</div>
-                        <button onClick={() => startGame(level)} className="px-8 py-4 bg-blue-600 rounded-xl font-bold text-xl w-full max-w-xs flex items-center justify-center gap-2">
-                          <Play /> Try Again
-                        </button>
-                     </>
-                   )}
+                   <h2 className="text-5xl font-bold text-slate-200 mb-2">GAME OVER</h2>
+                   <div className="text-lg text-yellow-400 mb-8 font-bold">
+                     {score > 2000 ? "太厲害了！" : score > 1000 ? "不錯喔！" : "繼續加油！"}
+                   </div>
+                   
+                   <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 w-full max-w-xs mb-8">
+                     <div className="text-slate-400 text-sm uppercase tracking-wider mb-1">Final Score</div>
+                     <div className="text-4xl font-mono text-white mb-4">{score}</div>
+                     <div className="flex justify-between text-sm border-t border-slate-700 pt-4">
+                       <div className="text-slate-400">Words Found</div>
+                       <div className="text-green-400">{discoveredWords.size}</div>
+                     </div>
+                   </div>
+
+                   <button onClick={startGame} className="px-8 py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-xl w-full max-w-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-900/40 active:scale-95 transition-transform">
+                     <RotateCcw /> Play Again
+                   </button>
                    <button onClick={() => setGameState('HOME')} className="mt-4 text-slate-500 text-sm hover:text-white">Back to Home</button>
                 </div>
               )}
