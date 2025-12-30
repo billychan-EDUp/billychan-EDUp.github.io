@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Snake Game: v19.4 (With Logo)</title>
+    <title>Math Snake Game: v19.5 (Kids Edition)</title>
     <style>
         /* --- 全局設定 --- */
         body {
@@ -140,12 +140,6 @@
             animation: pulse 1s infinite;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
         canvas {
             background-color: #ffffff;
             display: block;
@@ -217,6 +211,19 @@
             margin-bottom: 10px;
             display: block;
             min-height: 50px;
+        }
+
+        /* --- 新增：適合對象標籤 --- */
+        .age-badge {
+            background-color: #FFF9C4;
+            color: #FBC02D;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            border: 2px solid #FFF176;
+            display: inline-block;
         }
 
         .objective-card {
@@ -358,10 +365,11 @@
 
     <!-- 1. 開始畫面 (首頁) -->
     <div id="startScreen" class="overlay">
-        <!-- 這裡加回了 Logo -->
         <img src="logo.png" alt="Studio Logo" class="start-logo" onerror="this.style.border='2px dashed #ccc'; this.alt='Logo Here'">
         
         <h2 style="color: #333; margin: 5px 0;">Math Snake Game</h2>
+        <!-- 新增適合對象標籤 -->
+        <div class="age-badge">適合對象：4-7歲 👶</div>
         
         <div class="knowledge-card">
             <h3>🍎 點樣數蘋果？</h3>
@@ -453,26 +461,29 @@
         // --- 遊戲設定 ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const gridSize = 20; 
-        const tileCount = 20; 
+        
+        // ** 優化：放大格子 (10x10) 適合幼兒 **
+        const tileCount = 10; 
+        const gridSize = canvas.width / tileCount; // 400 / 10 = 40px per grid
 
         // --- 關卡設定 ---
-        // Day 4 (Index 3) 開始隱藏
         const HIDDEN_DAY_START_INDEX = 3; 
 
+        // ** 優化：速度減慢 (400ms -> 260ms)，適合 4-7 歲 **
+        // ** 優化：Day 4 目標 6, Day 5 目標 8 **
         const levels = [
-            { target: 3, speed: 250, bombs: 0, time: 60 },   // Day 1
-            { target: 5, speed: 230, bombs: 0, time: 80 },   // Day 2
-            { target: 7, speed: 210, bombs: 1, time: 100 },  // Day 3
-            { target: 9, speed: 190, bombs: 3, time: 120 },  // Day 4 (Hidden Starts)
-            { target: 10, speed: 180, bombs: 5, time: 140 }  // Day 5
+            { target: 3, speed: 400, bombs: 0, time: 60 },   // Day 1 (Very Slow)
+            { target: 5, speed: 360, bombs: 0, time: 80 },   // Day 2
+            { target: 7, speed: 320, bombs: 1, time: 100 },  // Day 3
+            { target: 6, speed: 300, bombs: 2, time: 120 },  // Day 4 (Hidden, Target 6)
+            { target: 8, speed: 280, bombs: 3, time: 140 }   // Day 5 (Target 8)
         ];
 
         // --- 變數 ---
         let currentDayIndex = 0;
         let score = 0;
         let snake = [];
-        let apple = {x: 15, y: 15};
+        let apple = {x: 5, y: 5};
         let home = {x: -1, y: -1};
         let bombs = [];
         let velocity = {x: 0, y: 0};
@@ -547,7 +558,7 @@
                         this.playTone(note.f, note.d);
                         noteIndex++;
                     }
-                }, 250); 
+                }, 250); // BGM 速度維持不變，保持歡快
             },
 
             stopBGM: function() {
@@ -579,12 +590,13 @@
             isTutorialMode = true;
             
             score = 0;
-            snake = [{x: 3, y: 5}, {x: 2, y: 5}, {x: 1, y: 5}]; 
+            // 修正初始位置以適應 10x10 網格
+            snake = [{x: 2, y: 2}, {x: 1, y: 2}]; 
             velocity = {x: 1, y: 0};
             lastVelocity = {x: 1, y: 0}; 
             nextMoves = []; 
-            apple = {x: 16, y: 5}; 
-            home = {x: 3, y: 15};  
+            apple = {x: 7, y: 2}; 
+            home = {x: 2, y: 7};  
             bombs = [];
             
             document.getElementById('levelDisplay').innerText = "示範中";
@@ -597,7 +609,7 @@
             speak("出發！");
 
             if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(gameLoop, 200); 
+            gameInterval = setInterval(gameLoop, 350); // 示範速度也減慢
         }
 
         function endTutorial() {
@@ -657,7 +669,8 @@
 
         function initLevel() {
             const levelConfig = levels[currentDayIndex];
-            snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
+            // 修正初始位置以適應 10x10 網格
+            snake = [{x: 4, y: 5}, {x: 3, y: 5}]; 
             score = 0;
             velocity = {x: 1, y: 0}; 
             lastVelocity = {x: 1, y: 0}; 
@@ -765,6 +778,7 @@
 
             const head = {x: snake[0].x + velocity.x, y: snake[0].y + velocity.y};
 
+            // 穿牆邏輯
             if (head.x < 0) head.x = tileCount - 1;
             if (head.x >= tileCount) head.x = 0;
             if (head.y < 0) head.y = tileCount - 1;
@@ -856,33 +870,34 @@
                 ctx.fillStyle = (i === 0) ? '#4CAF50' : '#81C784';
                 ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize - 2, gridSize - 2);
                 if (i === 0) { 
+                    // 畫眼睛
                     ctx.fillStyle = 'white'; 
-                    ctx.fillRect((snake[i].x * gridSize) + 4, (snake[i].y * gridSize) + 4, 4, 4);
-                    ctx.fillRect((snake[i].x * gridSize) + 12, (snake[i].y * gridSize) + 4, 4, 4);
+                    ctx.fillRect((snake[i].x * gridSize) + gridSize*0.2, (snake[i].y * gridSize) + gridSize*0.2, gridSize*0.2, gridSize*0.2);
+                    ctx.fillRect((snake[i].x * gridSize) + gridSize*0.6, (snake[i].y * gridSize) + gridSize*0.2, gridSize*0.2, gridSize*0.2);
                     
                     ctx.fillStyle = 'black'; 
-                    ctx.fillRect((snake[i].x * gridSize) + 5, (snake[i].y * gridSize) + 5, 2, 2);
-                    ctx.fillRect((snake[i].x * gridSize) + 13, (snake[i].y * gridSize) + 5, 2, 2);
+                    ctx.fillRect((snake[i].x * gridSize) + gridSize*0.25, (snake[i].y * gridSize) + gridSize*0.25, gridSize*0.1, gridSize*0.1);
+                    ctx.fillRect((snake[i].x * gridSize) + gridSize*0.65, (snake[i].y * gridSize) + gridSize*0.25, gridSize*0.1, gridSize*0.1);
                 }
             }
 
             drawApple(apple.x, apple.y);
 
             for (let b of bombs) {
-                ctx.font = '18px Arial';
+                ctx.font = `${gridSize * 0.8}px Arial`; // 動態調整字體大小
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#333'; 
-                ctx.fillText("💣", (b.x * gridSize) + 10, (b.y * gridSize) + 10);
+                ctx.fillText("💣", (b.x * gridSize) + gridSize/2, (b.y * gridSize) + gridSize/2);
             }
 
             ctx.fillStyle = '#2196F3';
             ctx.fillRect(home.x * gridSize, home.y * gridSize, gridSize - 2, gridSize - 2);
-            ctx.font = '16px Arial';
+            ctx.font = `${gridSize * 0.7}px Arial`; // 動態調整字體大小
             ctx.fillStyle = 'white';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText("🏠", (home.x * gridSize) + 10, (home.y * gridSize) + 10);
+            ctx.fillText("🏠", (home.x * gridSize) + gridSize/2, (home.y * gridSize) + gridSize/2);
         }
 
         function drawApple(x, y) {
@@ -905,7 +920,7 @@
             
             if (isTutorialMode) {
                 if (score === 1) {
-                    apple.x = 16; apple.y = 15; 
+                    apple.x = 7; apple.y = 7; 
                     return;
                 }
             }
@@ -925,7 +940,8 @@
             while (!valid) {
                 home.x = Math.floor(Math.random() * tileCount);
                 home.y = Math.floor(Math.random() * tileCount);
-                let distOK = (Math.abs(home.x - 10) >= 5 || Math.abs(home.y - 10) >= 5);
+                // 距離檢查放寬一點，因為只有10格
+                let distOK = (Math.abs(home.x - 5) >= 3 || Math.abs(home.y - 5) >= 3);
                 if (distOK && !isOccupied(home.x, home.y, 'home')) valid = true;
             }
         }
@@ -938,7 +954,8 @@
                 while (!valid) {
                     bomb.x = Math.floor(Math.random() * tileCount);
                     bomb.y = Math.floor(Math.random() * tileCount);
-                    let distOK = (Math.abs(bomb.x - 10) >= 3 || Math.abs(bomb.y - 10) >= 3);
+                    // 距離檢查放寬
+                    let distOK = (Math.abs(bomb.x - 5) >= 2 || Math.abs(bomb.y - 5) >= 2);
                     if (distOK && !isOccupied(bomb.x, bomb.y)) valid = true;
                 }
                 bombs.push(bomb);
