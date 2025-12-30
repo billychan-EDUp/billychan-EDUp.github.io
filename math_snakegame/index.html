@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Day 1: Math Snake Game</title>
+    <title>Math Snake Game: v19.4 (With Logo)</title>
     <style>
         /* --- 全局設定 --- */
         body {
@@ -78,6 +78,45 @@
             border-radius: 10px;
             box-sizing: border-box;
             border: 1px solid #ddd;
+        }
+
+        /* --- 狀態訊息欄 --- */
+        #status-message-bar {
+            width: 95%;
+            text-align: center;
+            margin-bottom: 5px;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .msg-text {
+            font-size: 0.95em;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 15px;
+            transition: all 0.5s ease;
+            white-space: nowrap;
+        }
+        
+        .msg-normal {
+            background-color: #E3F2FD;
+            color: #1565C0;
+            border: 1px solid #BBDEFB;
+        }
+
+        .msg-warning {
+            background-color: #FFF3E0;
+            color: #E65100;
+            border: 1px solid #FFE0B2;
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(255, 152, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
         }
 
         .level-badge {
@@ -282,6 +321,7 @@
 
     <div id="game-wrapper">
         <div id="top-bar">
+            <!-- 遊戲內 Logo -->
             <img src="logo1.png" alt="Game Logo" class="ingame-logo" onerror="this.style.opacity='0.3'; this.alt='Logo1 Here'">
             <button id="pauseBtn" class="hidden" onclick="pauseGame()">⏸</button>
         </div>
@@ -295,6 +335,11 @@
                 <span>🎯目標: <span id="targetScore" style="color:#d32f2f">3</span></span>
                 <span>🍎已吃: <span id="currentScore" style="color:#2e7d32">0</span></span>
             </div>
+        </div>
+        
+        <!-- 狀態訊息欄 -->
+        <div id="status-message-bar">
+            <span id="statusText" class="msg-text msg-normal">準備開始...</span>
         </div>
 
         <div id="toast">提示訊息</div>
@@ -313,6 +358,7 @@
 
     <!-- 1. 開始畫面 (首頁) -->
     <div id="startScreen" class="overlay">
+        <!-- 這裡加回了 Logo -->
         <img src="logo.png" alt="Studio Logo" class="start-logo" onerror="this.style.border='2px dashed #ccc'; this.alt='Logo Here'">
         
         <h2 style="color: #333; margin: 5px 0;">Math Snake Game</h2>
@@ -332,12 +378,15 @@
             <ul style="padding-left: 20px; margin: 5px 0; color: #444;">
                 <li>看清每日 🎯 <strong>目標數量</strong></li>
                 <li>吃夠就立刻回家 🏠</li>
-                <li><strong>Day 3 起小心炸彈 💣</strong></li>
+                <li><strong>Day 4 起隱藏計數 ⚠️</strong></li>
             </ul>
         </div>
         
-        <button class="btn-primary" onclick="showTutorialGoal()">▶ 看示範教學</button>
-        <p class="hint-text">如果沒有聲音，請檢查是否開啟了靜音模式 (🔕)</p>
+        <!-- 按鈕群組 -->
+        <button class="btn-primary" onclick="MusicManager.init(); showTutorialGoal()">▶ 看示範教學</button>
+        <button class="btn-primary btn-secondary" onclick="MusicManager.init(); showDailyGoal()">⏭ 跳過示範</button>
+        
+        <p class="hint-text">💡 提示：如果沒有聲音，請檢查手機是否開啟了靜音模式 (🔕)</p>
     </div>
 
     <!-- 1.5 示範目標彈窗 -->
@@ -352,14 +401,14 @@
 
         <p style="color: #666">準備好了嗎？</p>
         
-        <button class="btn-primary" onclick="runTutorial()">▶ 開始播放</button>
+        <button class="btn-primary" onclick="MusicManager.init(); runTutorial()">▶ 開始播放</button>
     </div>
 
     <!-- 2. 每日目標彈窗 -->
     <div id="dailyGoalScreen" class="overlay hidden">
         <h2 style="color: #2196F3">📅 <span id="dailyTitle">Day 1</span></h2>
         
-        <div class="daily-target-text">
+        <div class="daily-target-text" id="dailyTargetContent">
             今日小蛇要吃<br>
             <span class="big-number" id="dailyTargetNum">3</span><br>
             個蘋果 🍎
@@ -367,7 +416,7 @@
 
         <p style="color: #666">準備好了嗎？</p>
         
-        <button class="btn-primary" onclick="startDayAction()">🚀 出發！</button>
+        <button class="btn-primary" onclick="MusicManager.init(); startDayAction()">🚀 出發！</button>
     </div>
 
     <!-- 3. 結束/過關畫面 -->
@@ -376,11 +425,11 @@
         <p id="endMessage" style="font-size: 1.2em; margin: 15px 0; font-weight: bold;"></p>
         
         <div id="btnGroupSuccess" class="hidden">
-            <button class="btn-primary" onclick="nextDay()">進入下一天 ➡</button>
+            <button class="btn-primary" onclick="MusicManager.init(); nextDay()">進入下一天 ➡</button>
         </div>
         
         <div id="btnGroupFail" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
-            <button class="btn-primary btn-danger" onclick="retryDay()">💪 再接再厲</button>
+            <button class="btn-primary btn-danger" onclick="MusicManager.init(); retryDay()">💪 再接再厲</button>
             <button class="btn-primary btn-secondary" onclick="goHome()">🏠 回到首頁</button>
         </div>
         
@@ -408,12 +457,15 @@
         const tileCount = 20; 
 
         // --- 關卡設定 ---
+        // Day 4 (Index 3) 開始隱藏
+        const HIDDEN_DAY_START_INDEX = 3; 
+
         const levels = [
-            { target: 3, speed: 250, bombs: 0, time: 60 },
-            { target: 5, speed: 230, bombs: 0, time: 50 },
-            { target: 7, speed: 210, bombs: 1, time: 70 },
-            { target: 9, speed: 190, bombs: 3, time: 90 },
-            { target: 10, speed: 180, bombs: 5, time: 110 }
+            { target: 3, speed: 250, bombs: 0, time: 60 },   // Day 1
+            { target: 5, speed: 230, bombs: 0, time: 80 },   // Day 2
+            { target: 7, speed: 210, bombs: 1, time: 100 },  // Day 3
+            { target: 9, speed: 190, bombs: 3, time: 120 },  // Day 4 (Hidden Starts)
+            { target: 10, speed: 180, bombs: 5, time: 140 }  // Day 5
         ];
 
         // --- 變數 ---
@@ -424,6 +476,8 @@
         let home = {x: -1, y: -1};
         let bombs = [];
         let velocity = {x: 0, y: 0};
+        let nextMoves = []; 
+        let lastVelocity = {x: 0, y: 0}; 
         let gameInterval;
         let timerInterval;
         let timeLeft = 0;
@@ -431,85 +485,76 @@
         let isTutorialMode = false; 
         let isPaused = false;
         let synth = window.speechSynthesis; 
+        let statusMsgTimeout = null;
 
-        // --- 音樂系統 (BGM) & 強力解鎖 ---
-        let audioCtx;
-        let bgmInterval;
-        
-        // 全局解鎖：監聽整個文件的點擊，確保第一次互動就解鎖音效
-        const unlockAudio = () => {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // --- 音效管理器 ---
+        const MusicManager = {
+            ctx: null,
+            masterGain: null,
+            bgmTimer: null,
+            isPlaying: false,
+
+            init: function() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.gain.value = 0.15; 
+                    this.masterGain.connect(this.ctx.destination);
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                const buffer = this.ctx.createBuffer(1, 1, 22050);
+                const source = this.ctx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(this.ctx.destination);
+                source.start(0);
+            },
+
+            playTone: function(freq, duration) {
+                if (!this.ctx || this.ctx.state !== 'running') return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square'; 
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+
+            startBGM: function() {
+                this.init(); 
+                if (this.isPlaying) return;
+                this.isPlaying = true;
+
+                const melody = [
+                    {f: 262, d: 0.2}, {f: 330, d: 0.2}, {f: 392, d: 0.2}, {f: 523, d: 0.4}, 
+                    {f: 392, d: 0.2}, {f: 330, d: 0.2}, {f: 262, d: 0.4}, 
+                    {f: 294, d: 0.2}, {f: 349, d: 0.2}, {f: 392, d: 0.2}, {f: 440, d: 0.4}, 
+                    {f: 392, d: 0.2}, {f: 349, d: 0.2}, {f: 294, d: 0.4} 
+                ];
+
+                let noteIndex = 0;
+                if (this.bgmTimer) clearInterval(this.bgmTimer);
+
+                this.bgmTimer = setInterval(() => {
+                    if (!isPaused) {
+                        const note = melody[noteIndex % melody.length];
+                        this.playTone(note.f, note.d);
+                        noteIndex++;
+                    }
+                }, 250); 
+            },
+
+            stopBGM: function() {
+                this.isPlaying = false;
+                if (this.bgmTimer) clearInterval(this.bgmTimer);
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            // 播放極短靜音來觸發解鎖
-            const buffer = audioCtx.createBuffer(1, 1, 22050);
-            const source = audioCtx.createBufferSource();
-            source.buffer = buffer;
-            source.connect(audioCtx.destination);
-            source.start(0);
-            
-            // 解鎖後移除監聽器，避免重複執行
-            document.removeEventListener('click', unlockAudio);
-            document.removeEventListener('touchstart', unlockAudio);
-            document.removeEventListener('keydown', unlockAudio);
         };
-
-        // 綁定到整個文件，覆蓋率最高
-        document.addEventListener('click', unlockAudio);
-        document.addEventListener('touchstart', unlockAudio);
-        document.addEventListener('keydown', unlockAudio);
-
-        // 簡單的音效合成器
-        function playTone(freq, duration, type = 'square') {
-            if(!audioCtx) return; 
-            // 雙重保險
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.value = freq;
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            // 音量設定 (0.2)
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime); 
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
-        }
-
-        function startBGM() {
-            // 確保 Context 存在
-            if (!audioCtx) unlockAudio();
-            
-            const melody = [
-                {f: 262, d: 0.2}, {f: 330, d: 0.2}, {f: 392, d: 0.2}, {f: 523, d: 0.4}, 
-                {f: 392, d: 0.2}, {f: 330, d: 0.2}, {f: 262, d: 0.4}, 
-                {f: 294, d: 0.2}, {f: 349, d: 0.2}, {f: 392, d: 0.2}, {f: 440, d: 0.4}, 
-                {f: 392, d: 0.2}, {f: 349, d: 0.2}, {f: 294, d: 0.4} 
-            ];
-            
-            if(bgmInterval) clearInterval(bgmInterval);
-            
-            let tick = 0;
-            bgmInterval = setInterval(() => {
-                if(isPaused) return; 
-                
-                let note = melody[tick % melody.length];
-                playTone(note.f, note.d, 'square');
-                tick++;
-
-            }, 250); 
-        }
-
-        function stopBGM() {
-            if(bgmInterval) clearInterval(bgmInterval);
-        }
 
         // --- 輔助工具 ---
         function toChineseNum(num) {
@@ -527,7 +572,7 @@
         }
 
         function runTutorial() {
-            startBGM(); 
+            MusicManager.startBGM(); 
             document.getElementById('tutorialGoalScreen').classList.add('hidden');
             
             isDemoMode = true;
@@ -536,6 +581,8 @@
             score = 0;
             snake = [{x: 3, y: 5}, {x: 2, y: 5}, {x: 1, y: 5}]; 
             velocity = {x: 1, y: 0};
+            lastVelocity = {x: 1, y: 0}; 
+            nextMoves = []; 
             apple = {x: 16, y: 5}; 
             home = {x: 3, y: 15};  
             bombs = [];
@@ -543,6 +590,8 @@
             document.getElementById('levelDisplay').innerText = "示範中";
             document.getElementById('targetScore').innerText = "2"; 
             document.getElementById('timerDisplay').innerText = "--";
+            
+            updateStatusMessage("👀 觀看示範中...", "normal");
             updateScoreDisplay();
 
             speak("出發！");
@@ -567,9 +616,19 @@
             const displayDay = currentDayIndex + 1;
             
             document.getElementById('dailyTitle').innerText = `Day ${displayDay}`;
-            document.getElementById('dailyTargetNum').innerText = levelConfig.target;
             
-            speak(`第 ${toChineseNum(displayDay)} 日，今日目標，吃 ${levelConfig.target} 個蘋果。`);
+            // 重置內容
+            document.getElementById('dailyTargetNum').innerHTML = levelConfig.target;
+            
+            let speechText = `第 ${toChineseNum(displayDay)} 日，今日目標，吃 ${levelConfig.target} 個蘋果。`;
+
+            // Day 4 (Index 3) 開始隱藏計數的提示
+            if (currentDayIndex >= HIDDEN_DAY_START_INDEX) {
+                document.getElementById('dailyTargetNum').innerHTML += "<br><span style='font-size:0.6em; color:#d32f2f; display:block; margin-top:10px;'>⚠️ 隱藏計數！<br>心中記數！</span>";
+                speechText += "由今日開始，要自己在心中記數喔！";
+            }
+            
+            speak(speechText);
 
             document.getElementById('dailyGoalScreen').classList.remove('hidden');
         }
@@ -578,8 +637,22 @@
             document.getElementById('dailyGoalScreen').classList.add('hidden');
             document.getElementById('pauseBtn').classList.remove('hidden'); 
             isDemoMode = false;
+            
+            MusicManager.startBGM(); 
+            
             initLevel();
             speak("計時開始！");
+        }
+
+        function updateStatusMessage(text, type) {
+            const el = document.getElementById('statusText');
+            el.innerText = text;
+            el.className = 'msg-text'; 
+            if (type === 'warning') {
+                el.classList.add('msg-warning');
+            } else {
+                el.classList.add('msg-normal');
+            }
         }
 
         function initLevel() {
@@ -587,6 +660,8 @@
             snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
             score = 0;
             velocity = {x: 1, y: 0}; 
+            lastVelocity = {x: 1, y: 0}; 
+            nextMoves = []; 
             timeLeft = levelConfig.time;
             bombs = [];
             isPaused = false;
@@ -599,6 +674,20 @@
             spawnHome(); 
             spawnBombs(levelConfig.bombs);
             spawnApple();
+
+            // --- 狀態訊息邏輯 ---
+            updateStatusMessage(`今日小蛇要吃 ${levelConfig.target} 個蘋果 🍎`, "normal");
+            
+            if (statusMsgTimeout) clearTimeout(statusMsgTimeout);
+
+            // Day 4+ 隱藏關卡，3秒後切換警告
+            if (currentDayIndex >= HIDDEN_DAY_START_INDEX) {
+                statusMsgTimeout = setTimeout(() => {
+                    if (!isPaused && !isDemoMode && timeLeft > 0) {
+                        updateStatusMessage("⚠️ 隱藏計數！心中記數！", "warning");
+                    }
+                }, 3000);
+            }
 
             startIntervals(levelConfig.speed);
         }
@@ -618,6 +707,7 @@
             isPaused = true;
             clearInterval(gameInterval);
             clearInterval(timerInterval);
+            if (statusMsgTimeout) clearTimeout(statusMsgTimeout); 
             document.getElementById('pauseScreen').classList.remove('hidden');
             document.getElementById('pauseBtn').classList.add('hidden'); 
         }
@@ -629,6 +719,10 @@
             
             const levelConfig = levels[currentDayIndex];
             startIntervals(levelConfig.speed);
+            
+            if (currentDayIndex >= HIDDEN_DAY_START_INDEX) {
+                 updateStatusMessage("⚠️ 隱藏計數！心中記數！", "warning");
+            }
         }
 
         function tickTimer() {
@@ -655,6 +749,11 @@
         function gameLoop() {
             if (isDemoMode) {
                 autoPilot();
+            } else {
+                if (nextMoves.length > 0) {
+                    const nextDir = nextMoves.shift();
+                    velocity = nextDir;
+                }
             }
             update();
             draw();
@@ -662,6 +761,8 @@
 
         function update() {
             const levelConfig = levels[currentDayIndex];
+            lastVelocity = { ...velocity };
+
             const head = {x: snake[0].x + velocity.x, y: snake[0].y + velocity.y};
 
             if (head.x < 0) head.x = tileCount - 1;
@@ -686,7 +787,13 @@
                     }
                     return; 
                 } else {
-                    speakNumber(score); 
+                    // --- 隱藏計數邏輯 (Day 4+) ---
+                    if (isDemoMode) {
+                    } else if (currentDayIndex >= HIDDEN_DAY_START_INDEX) {
+                        MusicManager.playTone(600, 0.1);
+                    } else {
+                        speakNumber(score);
+                    }
                     spawnApple();
                 }
             } else {
@@ -720,10 +827,8 @@
                         }
                     } else {
                         if (!isDemoMode) {
-                            snake.shift(); 
-                            snake.reverse(); 
-                            showToast(`❌ 還不夠喔！再吃 ${levelConfig.target - score} 個！`);
-                            speak("還沒吃飽呢，再去吃吧！");
+                            speak("哎呀！還沒吃夠呢！");
+                            gameOver(false, "❌ 未吃夠就回家！數清楚喔！");
                         }
                     }
                 }
@@ -731,11 +836,9 @@
         }
 
         function draw() {
-            // 背景 (白底)
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 畫網格 (輔助數格)
             ctx.strokeStyle = '#f0f0f0';
             ctx.lineWidth = 1;
             for(let i = 0; i < tileCount; i++) {
@@ -749,16 +852,15 @@
                 ctx.stroke();
             }
 
-            // 蛇
             for (let i = 0; i < snake.length; i++) {
                 ctx.fillStyle = (i === 0) ? '#4CAF50' : '#81C784';
                 ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize - 2, gridSize - 2);
                 if (i === 0) { 
-                    ctx.fillStyle = 'white'; // 蛇眼白
+                    ctx.fillStyle = 'white'; 
                     ctx.fillRect((snake[i].x * gridSize) + 4, (snake[i].y * gridSize) + 4, 4, 4);
                     ctx.fillRect((snake[i].x * gridSize) + 12, (snake[i].y * gridSize) + 4, 4, 4);
                     
-                    ctx.fillStyle = 'black'; // 蛇眼珠
+                    ctx.fillStyle = 'black'; 
                     ctx.fillRect((snake[i].x * gridSize) + 5, (snake[i].y * gridSize) + 5, 2, 2);
                     ctx.fillRect((snake[i].x * gridSize) + 13, (snake[i].y * gridSize) + 5, 2, 2);
                 }
@@ -766,7 +868,6 @@
 
             drawApple(apple.x, apple.y);
 
-            // 炸彈
             for (let b of bombs) {
                 ctx.font = '18px Arial';
                 ctx.textAlign = 'center';
@@ -775,7 +876,6 @@
                 ctx.fillText("💣", (b.x * gridSize) + 10, (b.y * gridSize) + 10);
             }
 
-            // 家
             ctx.fillStyle = '#2196F3';
             ctx.fillRect(home.x * gridSize, home.y * gridSize, gridSize - 2, gridSize - 2);
             ctx.font = '16px Arial';
@@ -799,7 +899,6 @@
             ctx.fill();
         }
 
-        // --- 生成邏輯 ---
         function spawnApple() {
             let valid = false;
             let tempX, tempY;
@@ -855,7 +954,11 @@
         }
 
         function updateScoreDisplay() {
-            document.getElementById('currentScore').innerText = score;
+            if (currentDayIndex >= HIDDEN_DAY_START_INDEX && !isTutorialMode && !isDemoMode) {
+                document.getElementById('currentScore').innerText = "?";
+            } else {
+                document.getElementById('currentScore').innerText = score;
+            }
         }
 
         function speakNumber(num) {
@@ -872,8 +975,6 @@
             }
         }
 
-        // --- 遊戲狀態管理 ---
-        
         function levelComplete() {
             clearInterval(gameInterval); 
             clearInterval(timerInterval);
@@ -933,7 +1034,7 @@
             isDemoMode = false; 
             isTutorialMode = false;
             isPaused = false;
-            stopBGM(); 
+            MusicManager.stopBGM(); 
             
             document.getElementById('endScreen').classList.add('hidden');
             document.getElementById('dailyGoalScreen').classList.add('hidden');
@@ -943,7 +1044,6 @@
             
             document.getElementById('startScreen').classList.remove('hidden');
             
-            // 繪製初始白底
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
@@ -955,10 +1055,15 @@
             setTimeout(() => { toast.classList.remove('show'); }, 2000);
         }
 
-        // --- 控制 ---
         function setDir(x, y) {
-            if (velocity.x === 0 && x !== 0) { velocity = {x: x, y: 0}; }
-            if (velocity.y === 0 && y !== 0) { velocity = {x: 0, y: y}; }
+            const lastMove = nextMoves.length > 0 ? nextMoves[nextMoves.length - 1] : lastVelocity;
+
+            if (lastMove.x !== 0 && x !== 0) return; 
+            if (lastMove.y !== 0 && y !== 0) return; 
+
+            if (nextMoves.length < 3) {
+                nextMoves.push({x: x, y: y});
+            }
         }
 
         document.addEventListener('keydown', (e) => {
@@ -993,7 +1098,6 @@
             let target = apple;
             
             if (isTutorialMode) {
-                // 示範模式：吃夠 2 個就回家
                 target = (score >= 2) ? home : apple;
             } else {
                 target = (score >= levelConfig.target) ? home : apple;
@@ -1005,7 +1109,6 @@
             else if (head.y > target.y) velocity = {x: 0, y: -1};
         }
 
-        // 初始化繪圖 (白底)
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
