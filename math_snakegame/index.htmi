@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Day 1: Math Snake Game</title>
+    <style>
+        /* --- 全局設定 --- */
+        body {
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            background-color: #f0f8ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* --- 遊戲容器 --- */
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 10px;
+        }
+
+        canvas {
+            background-color: #222;
+            display: block;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            width: 95%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+        }
+
+        /* --- Logo (遊戲中) --- */
+        .ingame-logo {
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            width: 50px;
+            height: auto;
+            z-index: 20;
+            opacity: 0.9;
+            pointer-events: none;
+            filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5));
+        }
+
+        /* --- 暫停按鈕 --- */
+        #pauseBtn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        #pauseBtn:active { transform: scale(0.9); background: #eee; }
+
+        /* --- HUD --- */
+        #hud-container {
+            display: flex;
+            justify-content: space-between;
+            width: 90%;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.0em;
+            align-items: center;
+        }
+
+        .level-badge {
+            background: #FF9800;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+        
+        .timer-badge {
+            background: #607D8B;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 5px;
+            min-width: 50px;
+            text-align: center;
+        }
+        .timer-badge.urgent {
+            background: #F44336;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* --- 覆蓋層 --- */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f0f8ff; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 100;
+        }
+        .hidden { display: none !important; }
+
+        .start-logo {
+            max-width: 120px;
+            margin-bottom: 10px;
+            display: block;
+            min-height: 50px;
+        }
+
+        .objective-card {
+            background: #fff;
+            border: 2px solid #2196F3;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin: 5px 0;
+            width: 85%;
+            font-size: 0.9em;
+            text-align: left;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .knowledge-card {
+            background: #E8F5E9;
+            border-left: 5px solid #4CAF50;
+            padding: 10px;
+            margin: 10px 0;
+            width: 85%;
+            font-size: 0.9em;
+            text-align: left;
+            color: #2E7D32;
+            line-height: 1.6;
+        }
+        .knowledge-card h3 { margin: 0 0 5px 0; font-size: 1.1em; color: #1B5E20; }
+
+        /* --- 按鈕 --- */
+        .btn-primary {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            box-shadow: 0 4px #2e7d32;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+            min-width: 180px;
+        }
+        .btn-primary:active {
+            box-shadow: 0 2px #2e7d32;
+            transform: translateY(2px);
+        }
+
+        .btn-secondary {
+            background-color: #2196F3;
+            box-shadow: 0 4px #1976D2;
+        }
+        .btn-secondary:active {
+            box-shadow: 0 2px #1976D2;
+        }
+
+        .btn-danger {
+            background-color: #FF9800; /* 改為橙色，看起來不那麼像「錯誤」 */
+            box-shadow: 0 4px #F57C00;
+        }
+        .btn-danger:active {
+            box-shadow: 0 2px #F57C00;
+        }
+
+        /* --- 虛擬控制器 --- */
+        #controls-area {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 10px;
+            width: 200px;
+            height: 140px;
+            user-select: none;
+        }
+
+        .d-pad-btn {
+            background-color: #ddd;
+            border: 2px solid #bbb;
+            border-radius: 15px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px #999;
+            transition: all 0.1s;
+            color: #555;
+            touch-action: manipulation;
+        }
+
+        .d-pad-btn:active, .d-pad-btn.active {
+            background-color: #81C784;
+            color: white;
+            box-shadow: 0 0 #666;
+            transform: translateY(4px);
+        }
+        .spacer { visibility: hidden; }
+
+        #toast {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 30px;
+            font-size: 1.2em;
+            z-index: 50;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-align: center;
+            width: 80%; /* 加寬一點以免文字折行 */
+        }
+        #toast.show { opacity: 1; }
+
+        .daily-target-text {
+            font-size: 1.5em;
+            color: #333;
+            margin: 20px 0;
+        }
+        .big-number {
+            font-size: 2em;
+            color: #d32f2f;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <img src="logo1.png" alt="Game Logo" class="ingame-logo" onerror="this.style.opacity='0.3'; this.alt='Logo1 Here'">
+
+        <!-- 暫停按鈕 (預設隱藏) -->
+        <button id="pauseBtn" class="hidden" onclick="pauseGame()">⏸</button>
+
+        <div id="hud-container">
+            <div>
+                <span class="level-badge" id="levelDisplay">Day 1</span>
+                <span id="timerDisplay" class="timer-badge">30s</span>
+            </div>
+            <div>
+                <span>🎯目標: <span id="targetScore" style="color:#d32f2f">3</span></span>
+                <span>🍎已吃: <span id="currentScore" style="color:#2e7d32">0</span></span>
+            </div>
+        </div>
+
+        <div id="toast">提示訊息</div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+        <div id="controls-area">
+            <div class="spacer"></div>
+            <div class="d-pad-btn" id="btn-up">⬆️</div>
+            <div class="spacer"></div>
+            
+            <div class="d-pad-btn" id="btn-left">⬅️</div>
+            <div class="d-pad-btn" id="btn-down">⬇️</div>
+            <div class="d-pad-btn" id="btn-right">➡️</div>
+        </div>
+    </div>
+
+    <!-- 1. 開始畫面 (首頁) -->
+    <div id="startScreen" class="overlay">
+        <img src="logo.png" alt="Studio Logo" class="start-logo" onerror="this.style.border='2px dashed #ccc'; this.alt='Logo Here'">
+        
+        <h2 style="color: #333; margin: 5px 0;">Math Snake Game</h2>
+        
+        <div class="knowledge-card">
+            <h3>🍎 點樣數蘋果？</h3>
+            <p>
+                1. 見到蘋果，個心就數<strong>「1」</strong><br>
+                2. 食多個，就數<strong>「2」</strong>...<br>
+                3. 數到目標數目，就<strong>即刻停</strong>！<br>
+                (要數得好準先得架！💪)
+            </p>
+        </div>
+
+        <div class="objective-card">
+            <strong>📋 遊戲規則：</strong>
+            <ul style="padding-left: 20px; margin: 5px 0; color: #444;">
+                <li>看清每日 🎯 <strong>目標數量</strong></li>
+                <li>吃夠就立刻回家 🏠</li>
+                <li><strong>Day 3 起小心炸彈 💣</strong></li>
+            </ul>
+        </div>
+        
+        <button class="btn-primary" onclick="showTutorialGoal()">▶ 看示範教學</button>
+    </div>
+
+    <!-- 1.5 示範目標彈窗 (新增) -->
+    <div id="tutorialGoalScreen" class="overlay hidden">
+        <h2 style="color: #4CAF50">👀 示範時間</h2>
+        
+        <div class="daily-target-text">
+            先看 AI 示範：<br>
+            吃 <span class="big-number" style="color:#4CAF50">2</span> 個蘋果<br>
+            然後回家 🏠
+        </div>
+
+        <p style="color: #666">準備好了嗎？</p>
+        
+        <button class="btn-primary" onclick="runTutorial()">▶ 開始播放</button>
+    </div>
+
+    <!-- 2. 每日目標彈窗 -->
+    <div id="dailyGoalScreen" class="overlay hidden">
+        <h2 style="color: #2196F3">📅 <span id="dailyTitle">Day 1</span></h2>
+        
+        <div class="daily-target-text">
+            今日小蛇要吃<br>
+            <span class="big-number" id="dailyTargetNum">3</span><br>
+            個蘋果 🍎
+        </div>
+
+        <p style="color: #666">準備好了嗎？</p>
+        
+        <button class="btn-primary" onclick="startDayAction()">🚀 出發！</button>
+    </div>
+
+    <!-- 3. 結束/過關畫面 -->
+    <div id="endScreen" class="overlay hidden">
+        <h2 id="endTitle">遊戲結束</h2>
+        <p id="endMessage" style="font-size: 1.2em; margin: 15px 0; font-weight: bold;"></p>
+        
+        <div id="btnGroupSuccess" class="hidden">
+            <button class="btn-primary" onclick="nextDay()">進入下一天 ➡</button>
+        </div>
+        
+        <div id="btnGroupFail" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
+            <button class="btn-primary btn-danger" onclick="retryDay()">💪 再接再厲</button>
+            <button class="btn-primary btn-secondary" onclick="goHome()">🏠 回到首頁</button>
+        </div>
+        
+        <div id="btnGroupWin" class="hidden">
+            <button class="btn-primary" onclick="goHome()">🏆 完美通關 (回首頁)</button>
+        </div>
+    </div>
+
+    <!-- 4. 暫停畫面 -->
+    <div id="pauseScreen" class="overlay hidden">
+        <h2 style="color: #2c3e50; font-size: 2em;">⏸ 暫停</h2>
+        <p style="font-size: 1.2em; color: #666; margin-bottom: 30px;">休息一陣，飲啖水先...</p>
+        
+        <div style="display:flex; flex-direction:column; gap:15px;">
+            <button class="btn-primary" onclick="resumeGame()">▶ 繼續遊戲</button>
+            <button class="btn-primary btn-secondary" onclick="goHome()">🏠 回到首頁</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲設定 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 20; 
+        const tileCount = 20; 
+
+        // --- 關卡設定 (Days) ---
+        const levels = [
+            { target: 3, speed: 250, bombs: 0, time: 30 },
+            { target: 5, speed: 230, bombs: 0, time: 50 },
+            { target: 7, speed: 210, bombs: 1, time: 70 },
+            { target: 9, speed: 190, bombs: 3, time: 90 },
+            { target: 10, speed: 180, bombs: 5, time: 110 }
+        ];
+
+        // --- 變數 ---
+        let currentDayIndex = 0;
+        let score = 0;
+        let snake = [];
+        let apple = {x: 15, y: 15};
+        let home = {x: -1, y: -1};
+        let bombs = [];
+        let velocity = {x: 0, y: 0};
+        let gameInterval;
+        let timerInterval;
+        let timeLeft = 0;
+        let isDemoMode = false;
+        let isTutorialMode = false; 
+        let isPaused = false;
+        let synth = window.speechSynthesis; 
+
+        // --- 音樂系統 (BGM) ---
+        let audioCtx;
+        let bgmInterval;
+        let noteIndex = 0;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        // 簡單的音效合成器
+        function playTone(freq, duration, type = 'square') {
+            if(!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            gain.gain.setValueAtTime(0.02, audioCtx.currentTime); // 音量小一點，不刺耳
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function startBGM() {
+            initAudio();
+            // 快樂的旋律 (C大調)
+            const melody = [
+                {f: 262, d: 0.2}, {f: 330, d: 0.2}, {f: 392, d: 0.2}, {f: 523, d: 0.4}, // C E G C
+                {f: 392, d: 0.2}, {f: 330, d: 0.2}, {f: 262, d: 0.4}, // G E C
+                {f: 294, d: 0.2}, {f: 349, d: 0.2}, {f: 392, d: 0.2}, {f: 440, d: 0.4}, // D F G A
+                {f: 392, d: 0.2}, {f: 349, d: 0.2}, {f: 294, d: 0.4}  // G F D
+            ];
+            
+            if(bgmInterval) clearInterval(bgmInterval);
+            
+            let tick = 0;
+            bgmInterval = setInterval(() => {
+                if(isPaused) return; 
+                
+                let note = melody[tick % melody.length];
+                playTone(note.f, note.d, 'square');
+                tick++;
+
+            }, 250); // 每 250ms 播放一個音符
+        }
+
+        function stopBGM() {
+            if(bgmInterval) clearInterval(bgmInterval);
+        }
+
+        // --- 流程控制 ---
+
+        // 1. 準備示範 (New)
+        function showTutorialGoal() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('tutorialGoalScreen').classList.remove('hidden');
+            speak("示範開始，請看清楚，吃兩個蘋果就回家。");
+        }
+
+        // 2. 開始示範 (Renamed from startTutorial)
+        function runTutorial() {
+            startBGM();
+            document.getElementById('tutorialGoalScreen').classList.add('hidden');
+            
+            isDemoMode = true;
+            isTutorialMode = true;
+            
+            // 示範設定：目標吃 2 個
+            score = 0;
+            snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
+            velocity = {x: 1, y: 0};
+            apple = {x: 14, y: 10}; // 第一個蘋果位置
+            home = {x: 16, y: 15};  // 家的位置
+            bombs = [];
+            
+            document.getElementById('levelDisplay').innerText = "示範中";
+            document.getElementById('targetScore').innerText = "2"; // 目標改為 2
+            document.getElementById('timerDisplay').innerText = "--";
+            updateScoreDisplay();
+
+            // 說話
+            speak("出發！");
+
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, 200); 
+        }
+
+        // 3. 示範結束 -> 顯示 Day 1 目標
+        function endTutorial() {
+            clearInterval(gameInterval);
+            isDemoMode = false;
+            isTutorialMode = false;
+            showDailyGoal();
+        }
+
+        // 4. 顯示 Day 1 彈窗
+        function showDailyGoal() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('tutorialGoalScreen').classList.add('hidden');
+            
+            const levelConfig = levels[currentDayIndex];
+            document.getElementById('dailyTitle').innerText = `Day ${currentDayIndex + 1}`;
+            document.getElementById('dailyTargetNum').innerText = levelConfig.target;
+            
+            speak(`第 ${currentDayIndex + 1} 日，今日目標，吃 ${levelConfig.target} 個蘋果。`);
+
+            document.getElementById('dailyGoalScreen').classList.remove('hidden');
+        }
+
+        // 5. 正式開始 Day 1
+        function startDayAction() {
+            document.getElementById('dailyGoalScreen').classList.add('hidden');
+            document.getElementById('pauseBtn').classList.remove('hidden'); 
+            isDemoMode = false;
+            initLevel();
+            speak("計時開始！");
+        }
+
+        function initLevel() {
+            const levelConfig = levels[currentDayIndex];
+            snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
+            score = 0;
+            velocity = {x: 1, y: 0}; 
+            timeLeft = levelConfig.time;
+            bombs = [];
+            isPaused = false;
+
+            document.getElementById('levelDisplay').innerText = `Day ${currentDayIndex + 1}`;
+            document.getElementById('targetScore').innerText = levelConfig.target;
+            updateScoreDisplay();
+            updateTimerDisplay();
+
+            spawnHome(); 
+            spawnBombs(levelConfig.bombs);
+            spawnApple();
+
+            startIntervals(levelConfig.speed);
+        }
+
+        function startIntervals(speed) {
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, speed);
+
+            if (timerInterval) clearInterval(timerInterval);
+            if (!isDemoMode) {
+                timerInterval = setInterval(tickTimer, 1000);
+            }
+        }
+
+        // --- 暫停系統 ---
+        function pauseGame() {
+            if (isDemoMode) return; 
+            isPaused = true;
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            document.getElementById('pauseScreen').classList.remove('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden'); 
+        }
+
+        function resumeGame() {
+            isPaused = false;
+            document.getElementById('pauseScreen').classList.add('hidden');
+            document.getElementById('pauseBtn').classList.remove('hidden');
+            
+            const levelConfig = levels[currentDayIndex];
+            startIntervals(levelConfig.speed);
+        }
+
+        // --- 計時器 ---
+        function tickTimer() {
+            timeLeft--;
+            updateTimerDisplay();
+            
+            if (timeLeft <= 5) {
+                document.getElementById('timerDisplay').classList.add('urgent');
+            }
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                speak("時間到了！");
+                gameOver(false, "⏰ 時間到了！下次加油！");
+            }
+        }
+
+        function updateTimerDisplay() {
+            const el = document.getElementById('timerDisplay');
+            el.innerText = timeLeft + "s";
+            if (timeLeft > 5) el.classList.remove('urgent');
+        }
+
+        // --- 遊戲循環 ---
+        function gameLoop() {
+            if (isDemoMode) {
+                autoPilot();
+            }
+            update();
+            draw();
+        }
+
+        function update() {
+            const levelConfig = levels[currentDayIndex];
+            const head = {x: snake[0].x + velocity.x, y: snake[0].y + velocity.y};
+
+            // 穿牆
+            if (head.x < 0) head.x = tileCount - 1;
+            if (head.x >= tileCount) head.x = 0;
+            if (head.y < 0) head.y = tileCount - 1;
+            if (head.y >= tileCount) head.y = 0;
+
+            snake.unshift(head);
+
+            // 吃蘋果
+            if (head.x === apple.x && head.y === apple.y) {
+                score++;
+                updateScoreDisplay();
+                
+                // 示範模式判定 (吃2個)
+                if (isTutorialMode) {
+                    speakNumber(score);
+                    // 吃到第2個後，讓 AI 找家，但記得要再生一個蘋果讓函數繼續運作
+                    spawnApple(); 
+                } 
+                // 一般模式判定
+                else if (score > levelConfig.target) {
+                    if (!isDemoMode) {
+                        speak("哎呀！吃太多了！");
+                        gameOver(false, "😮 哎呀！吃太多了，下次數清楚喔！");
+                    }
+                    return; 
+                } else {
+                    speakNumber(score); 
+                    spawnApple();
+                }
+            } else {
+                snake.pop(); 
+            }
+
+            // 撞炸彈
+            if (!isDemoMode && !isTutorialMode) {
+                for (let b of bombs) {
+                    if (head.x === b.x && head.y === b.y) {
+                        speak("嘭！踩到炸彈了！");
+                        gameOver(false, "💣 踩到炸彈了！下次小心看路！");
+                        return;
+                    }
+                }
+            }
+
+            // 進屋
+            if (head.x === home.x && head.y === home.y) {
+                // 示範模式過關 (需吃滿2個)
+                if (isTutorialMode) {
+                    if (score === 2) {
+                        endTutorial();
+                        return;
+                    } 
+                    // 如果AI沒吃滿2個就誤入家門(理論上autopilot會避開)，讓它彈開
+                }
+
+                // 一般模式過關
+                if (!isTutorialMode) {
+                    if (score === levelConfig.target) {
+                        if(isDemoMode) {
+                            initLevel();
+                        } else {
+                            levelComplete();
+                        }
+                    } else {
+                        if (!isDemoMode) {
+                            snake.shift(); 
+                            snake.reverse(); 
+                            showToast(`❌ 還不夠喔！再吃 ${levelConfig.target - score} 個！`);
+                            speak("還沒吃飽呢，再去吃吧！");
+                        }
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            // 背景 (全黑)
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 蛇
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = (i === 0) ? '#4CAF50' : '#81C784';
+                ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize - 2, gridSize - 2);
+                if (i === 0) { 
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect((snake[i].x * gridSize) + 4, (snake[i].y * gridSize) + 4, 4, 4);
+                    ctx.fillRect((snake[i].x * gridSize) + 12, (snake[i].y * gridSize) + 4, 4, 4);
+                }
+            }
+
+            drawApple(apple.x, apple.y);
+
+            // 炸彈
+            for (let b of bombs) {
+                ctx.font = '18px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText("💣", (b.x * gridSize) + 10, (b.y * gridSize) + 10);
+            }
+
+            // 家
+            ctx.fillStyle = '#2196F3';
+            ctx.fillRect(home.x * gridSize, home.y * gridSize, gridSize - 2, gridSize - 2);
+            ctx.font = '16px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText("🏠", (home.x * gridSize) + 10, (home.y * gridSize) + 10);
+        }
+
+        function drawApple(x, y) {
+            const centerX = (x * gridSize) + gridSize/2;
+            const centerY = (y * gridSize) + gridSize/2 + 2;
+            const radius = gridSize/2 - 2;
+            ctx.fillStyle = '#FF5252';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY - radius, 4, 2, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // --- 生成邏輯 ---
+        function spawnApple() {
+            let valid = false;
+            let tempX, tempY;
+            // 示範模式下，我們手動控制下一個蘋果位置，確保路徑簡單
+            if (isTutorialMode) {
+                if (score === 1) {
+                    apple.x = 10; apple.y = 10; // 第2個蘋果
+                    return;
+                }
+            }
+
+            while (!valid) {
+                tempX = Math.floor(Math.random() * tileCount);
+                tempY = Math.floor(Math.random() * tileCount);
+                if (!isOccupied(tempX, tempY, 'apple')) {
+                    apple.x = tempX; apple.y = tempY;
+                    valid = true;
+                }
+            }
+        }
+
+        function spawnHome() {
+            let valid = false;
+            while (!valid) {
+                home.x = Math.floor(Math.random() * tileCount);
+                home.y = Math.floor(Math.random() * tileCount);
+                let distOK = (Math.abs(home.x - 10) >= 5 || Math.abs(home.y - 10) >= 5);
+                if (distOK && !isOccupied(home.x, home.y, 'home')) valid = true;
+            }
+        }
+
+        function spawnBombs(count) {
+            bombs = [];
+            for(let i=0; i<count; i++) {
+                let bomb = {};
+                let valid = false;
+                while (!valid) {
+                    bomb.x = Math.floor(Math.random() * tileCount);
+                    bomb.y = Math.floor(Math.random() * tileCount);
+                    let distOK = (Math.abs(bomb.x - 10) >= 3 || Math.abs(bomb.y - 10) >= 3);
+                    if (distOK && !isOccupied(bomb.x, bomb.y)) valid = true;
+                }
+                bombs.push(bomb);
+            }
+        }
+
+        function isOccupied(x, y, ignoreType) {
+            for(let p of snake) if(p.x === x && p.y === y) return true;
+            if(ignoreType !== 'home' && home.x === x && home.y === y) return true;
+            for(let b of bombs) if(b.x === x && b.y === y) return true;
+            if(ignoreType !== 'apple' && apple.x === x && apple.y === y) return true;
+            return false;
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('currentScore').innerText = score;
+        }
+
+        function speakNumber(num) {
+            speak(num.toString());
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                synth.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-HK'; 
+                utterance.rate = 1.0; 
+                synth.speak(utterance);
+            }
+        }
+
+        // --- 遊戲狀態管理 ---
+        
+        function levelComplete() {
+            clearInterval(gameInterval); 
+            clearInterval(timerInterval);
+            speak("太棒了！過關！");
+            
+            document.getElementById('endScreen').classList.remove('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden'); 
+            
+            hideAllEndBtnGroups();
+
+            if (currentDayIndex < levels.length - 1) {
+                document.getElementById('endTitle').innerText = `🎉 Day ${currentDayIndex + 1} 完成！`;
+                document.getElementById('endTitle').style.color = "#4CAF50";
+                document.getElementById('endMessage').innerText = "休息一下，準備迎接新的一天！";
+                document.getElementById('btnGroupSuccess').classList.remove('hidden');
+            } else {
+                document.getElementById('endTitle').innerText = "🏆 數數大師！";
+                document.getElementById('endTitle').style.color = "#FF9800";
+                document.getElementById('endMessage').innerText = "恭喜你！全部日數挑戰成功！";
+                document.getElementById('btnGroupWin').classList.remove('hidden');
+            }
+        }
+
+        function gameOver(win, msg) {
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            isDemoMode = true; 
+            
+            document.getElementById('endScreen').classList.remove('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden'); 
+            document.getElementById('endTitle').innerText = "💪 再接再厲！";
+            document.getElementById('endTitle').style.color = "#FF9800";
+            document.getElementById('endMessage').innerText = msg;
+            
+            hideAllEndBtnGroups();
+            document.getElementById('btnGroupFail').classList.remove('hidden');
+        }
+
+        function hideAllEndBtnGroups() {
+            document.getElementById('btnGroupSuccess').classList.add('hidden');
+            document.getElementById('btnGroupFail').classList.add('hidden');
+            document.getElementById('btnGroupWin').classList.add('hidden');
+        }
+
+        function nextDay() {
+            currentDayIndex++;
+            showDailyGoal(); 
+        }
+
+        function retryDay() {
+            showDailyGoal();
+        }
+
+        function goHome() {
+            currentDayIndex = 0;
+            score = 0;
+            isDemoMode = false; 
+            isTutorialMode = false;
+            isPaused = false;
+            stopBGM(); 
+            
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('dailyGoalScreen').classList.add('hidden');
+            document.getElementById('pauseScreen').classList.add('hidden'); 
+            document.getElementById('pauseBtn').classList.add('hidden'); 
+            document.getElementById('tutorialGoalScreen').classList.add('hidden'); // 確保隱藏
+            
+            document.getElementById('startScreen').classList.remove('hidden');
+            
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 2000);
+        }
+
+        // --- 控制 ---
+        function setDir(x, y) {
+            if (velocity.x === 0 && x !== 0) { velocity = {x: x, y: 0}; }
+            if (velocity.y === 0 && y !== 0) { velocity = {x: 0, y: y}; }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(isDemoMode && !isTutorialMode) return; 
+            if(isDemoMode && isTutorialMode) return;
+            if(isPaused) return; 
+            if (e.keyCode === 37) setDir(-1, 0);
+            if (e.keyCode === 38) setDir(0, -1);
+            if (e.keyCode === 39) setDir(1, 0);
+            if (e.keyCode === 40) setDir(0, 1);
+        });
+
+        const bindBtn = (id, x, y) => {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if(!isDemoMode && !isPaused) { setDir(x, y); btn.classList.add('active'); }
+            }, {passive: false});
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); btn.classList.remove('active'); });
+            btn.addEventListener('mousedown', () => { if(!isDemoMode && !isPaused) setDir(x, y); });
+        };
+
+        bindBtn('btn-up', 0, -1);
+        bindBtn('btn-down', 0, 1);
+        bindBtn('btn-left', -1, 0);
+        bindBtn('btn-right', 1, 0);
+
+        function autoPilot() {
+            const head = snake[0];
+            const levelConfig = levels[currentDayIndex];
+            
+            let target = apple;
+            
+            if (isTutorialMode) {
+                // 示範模式：吃夠 2 個就回家
+                target = (score >= 2) ? home : apple;
+            } else {
+                target = (score >= levelConfig.target) ? home : apple;
+            }
+
+            if (head.x < target.x) velocity = {x: 1, y: 0};
+            else if (head.x > target.x) velocity = {x: -1, y: 0};
+            else if (head.y < target.y) velocity = {x: 0, y: 1};
+            else if (head.y > target.y) velocity = {x: 0, y: -1};
+        }
+
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    </script>
+</body>
+</html>
