@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Snake Game: v19.6 (Super Kids)</title>
+    <title>Math Snake Game: v19.7 (Slow Motion)</title>
     <style>
         /* --- 全局設定 --- */
         body {
@@ -469,13 +469,13 @@
         // --- 關卡設定 ---
         const HIDDEN_DAY_START_INDEX = 3; 
 
-        // ** 優化：恆定慢速 500ms (0.5秒) **
+        // ** 優化：恆定慢速 650ms (0.65秒) - 減慢 30% **
         const levels = [
-            { target: 3, speed: 500, bombs: 0, time: 60 },   // Day 1
-            { target: 5, speed: 500, bombs: 0, time: 80 },   // Day 2
-            { target: 7, speed: 500, bombs: 1, time: 100 },  // Day 3
-            { target: 6, speed: 500, bombs: 2, time: 120 },  // Day 4 (Hidden, Target 6)
-            { target: 8, speed: 500, bombs: 3, time: 140 }   // Day 5 (Target 8)
+            { target: 3, speed: 650, bombs: 0, time: 60 },   // Day 1
+            { target: 5, speed: 650, bombs: 0, time: 80 },   // Day 2
+            { target: 7, speed: 650, bombs: 1, time: 100 },  // Day 3
+            { target: 6, speed: 650, bombs: 2, time: 120 },  // Day 4 (Hidden, Target 6)
+            { target: 8, speed: 650, bombs: 3, time: 140 }   // Day 5 (Target 8)
         ];
 
         // --- 變數 ---
@@ -608,7 +608,7 @@
             speak("出發！");
 
             if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(gameLoop, 500); // 示範速度一致
+            gameInterval = setInterval(gameLoop, 650); // 示範速度一致
         }
 
         function endTutorial() {
