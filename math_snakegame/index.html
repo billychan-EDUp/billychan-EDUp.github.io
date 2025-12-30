@@ -8,7 +8,7 @@
         /* --- 全局設定 --- */
         body {
             font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
-            background-color: #ffffff; /* 改為白底 */
+            background-color: #ffffff;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -73,7 +73,7 @@
             color: #2c3e50;
             font-size: 1.1em;
             align-items: center;
-            background: rgba(240,240,240,0.8); /* 淺灰背景 */
+            background: rgba(240,240,240,0.8);
             padding: 5px 10px;
             border-radius: 10px;
             box-sizing: border-box;
@@ -108,11 +108,11 @@
         }
 
         canvas {
-            background-color: #ffffff; /* Canvas 白底 */
+            background-color: #ffffff;
             display: block;
             border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* 陰影淡一點 */
-            border: 2px solid #eee; /* 加個邊框以免太白看不見邊界 */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 2px solid #eee;
             width: 95%;
             height: auto;
             aspect-ratio: 1 / 1;
@@ -161,7 +161,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255,255,255,0.95); /* 更白的遮罩 */
+            background: rgba(255,255,255,0.95);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -269,6 +269,12 @@
             color: #d32f2f;
             font-weight: bold;
         }
+        
+        .hint-text {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+        }
 
     </style>
 </head>
@@ -330,8 +336,8 @@
             </ul>
         </div>
         
-        <!-- 加入 onclick 直接解鎖 Audio -->
-        <button class="btn-primary" onclick="forceAudioUnlock(); showTutorialGoal()">▶ 看示範教學</button>
+        <button class="btn-primary" onclick="showTutorialGoal()">▶ 看示範教學</button>
+        <p class="hint-text">如果沒有聲音，請檢查是否開啟了靜音模式 (🔕)</p>
     </div>
 
     <!-- 1.5 示範目標彈窗 -->
@@ -346,7 +352,7 @@
 
         <p style="color: #666">準備好了嗎？</p>
         
-        <button class="btn-primary" onclick="forceAudioUnlock(); runTutorial()">▶ 開始播放</button>
+        <button class="btn-primary" onclick="runTutorial()">▶ 開始播放</button>
     </div>
 
     <!-- 2. 每日目標彈窗 -->
@@ -361,7 +367,7 @@
 
         <p style="color: #666">準備好了嗎？</p>
         
-        <button class="btn-primary" onclick="forceAudioUnlock(); startDayAction()">🚀 出發！</button>
+        <button class="btn-primary" onclick="startDayAction()">🚀 出發！</button>
     </div>
 
     <!-- 3. 結束/過關畫面 -->
@@ -370,11 +376,11 @@
         <p id="endMessage" style="font-size: 1.2em; margin: 15px 0; font-weight: bold;"></p>
         
         <div id="btnGroupSuccess" class="hidden">
-            <button class="btn-primary" onclick="forceAudioUnlock(); nextDay()">進入下一天 ➡</button>
+            <button class="btn-primary" onclick="nextDay()">進入下一天 ➡</button>
         </div>
         
         <div id="btnGroupFail" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
-            <button class="btn-primary btn-danger" onclick="forceAudioUnlock(); retryDay()">💪 再接再厲</button>
+            <button class="btn-primary btn-danger" onclick="retryDay()">💪 再接再厲</button>
             <button class="btn-primary btn-secondary" onclick="goHome()">🏠 回到首頁</button>
         </div>
         
@@ -401,7 +407,7 @@
         const gridSize = 20; 
         const tileCount = 20; 
 
-        // --- 關卡設定 (Day 1 改為 60秒) ---
+        // --- 關卡設定 ---
         const levels = [
             { target: 3, speed: 250, bombs: 0, time: 60 },
             { target: 5, speed: 230, bombs: 0, time: 50 },
@@ -429,37 +435,38 @@
         // --- 音樂系統 (BGM) & 強力解鎖 ---
         let audioCtx;
         let bgmInterval;
-        let audioUnlocked = false;
-
-        // 強力喚醒函數：在按鈕點擊時調用
-        function forceAudioUnlock() {
-            if (audioUnlocked && audioCtx && audioCtx.state === 'running') return;
-
+        
+        // 全局解鎖：監聽整個文件的點擊，確保第一次互動就解鎖音效
+        const unlockAudio = () => {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-
-            // 播放一個靜音緩衝區來強制解鎖 iOS audio
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            // 播放極短靜音來觸發解鎖
             const buffer = audioCtx.createBuffer(1, 1, 22050);
             const source = audioCtx.createBufferSource();
             source.buffer = buffer;
             source.connect(audioCtx.destination);
             source.start(0);
+            
+            // 解鎖後移除監聽器，避免重複執行
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('keydown', unlockAudio);
+        };
 
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume().then(() => {
-                    console.log("AudioContext Force Resumed");
-                    audioUnlocked = true;
-                });
-            } else {
-                audioUnlocked = true;
-            }
-        }
+        // 綁定到整個文件，覆蓋率最高
+        document.addEventListener('click', unlockAudio);
+        document.addEventListener('touchstart', unlockAudio);
+        document.addEventListener('keydown', unlockAudio);
 
         // 簡單的音效合成器
         function playTone(freq, duration, type = 'square') {
             if(!audioCtx) return; 
-            if(audioCtx.state === 'suspended') audioCtx.resume(); // 再次嘗試恢復
+            // 雙重保險
+            if(audioCtx.state === 'suspended') audioCtx.resume();
 
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -468,7 +475,8 @@
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+            // 音量設定 (0.2)
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime); 
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
 
             osc.start();
@@ -476,7 +484,8 @@
         }
 
         function startBGM() {
-            forceAudioUnlock(); // 雙重保險
+            // 確保 Context 存在
+            if (!audioCtx) unlockAudio();
             
             const melody = [
                 {f: 262, d: 0.2}, {f: 330, d: 0.2}, {f: 392, d: 0.2}, {f: 523, d: 0.4}, 
@@ -502,12 +511,7 @@
             if(bgmInterval) clearInterval(bgmInterval);
         }
 
-        // 全局監聽，嘗試解鎖
-        ['click', 'touchstart', 'keydown'].forEach(evt => 
-            document.body.addEventListener(evt, forceAudioUnlock, { once: true })
-        );
-
-        // --- 輔助工具：數字轉中文 ---
+        // --- 輔助工具 ---
         function toChineseNum(num) {
             const map = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
             if (num <= 10) return map[num];
@@ -754,7 +758,7 @@
                     ctx.fillRect((snake[i].x * gridSize) + 4, (snake[i].y * gridSize) + 4, 4, 4);
                     ctx.fillRect((snake[i].x * gridSize) + 12, (snake[i].y * gridSize) + 4, 4, 4);
                     
-                    ctx.fillStyle = 'black'; // 蛇眼珠 (在白底上需要黑眼珠才明顯)
+                    ctx.fillStyle = 'black'; // 蛇眼珠
                     ctx.fillRect((snake[i].x * gridSize) + 5, (snake[i].y * gridSize) + 5, 2, 2);
                     ctx.fillRect((snake[i].x * gridSize) + 13, (snake[i].y * gridSize) + 5, 2, 2);
                 }
@@ -767,7 +771,7 @@
                 ctx.font = '18px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#333'; // 確保在白底上可見
+                ctx.fillStyle = '#333'; 
                 ctx.fillText("💣", (b.x * gridSize) + 10, (b.y * gridSize) + 10);
             }
 
