@@ -8,7 +8,7 @@
         /* --- 全局設定 --- */
         body {
             font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
-            background-color: #f0f8ff;
+            background-color: #ffffff; /* 改為白底 */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -23,7 +23,7 @@
         #game-wrapper {
             position: relative;
             width: 100%;
-            max-width: 420px; /* 稍微加寬以容納大按鈕 */
+            max-width: 420px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -31,26 +31,24 @@
             height: 100%;
         }
 
-        /* --- 頂部欄 (Logo & Pause) - 解決遮擋問題 --- */
+        /* --- 頂部欄 --- */
         #top-bar {
             width: 95%;
             display: flex;
-            justify-content: space-between; /* 左右對齊 */
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 5px;
-            min-height: 50px; /* 預留高度 */
+            min-height: 50px;
         }
 
-        /* Logo 樣式 (不再是 absolute) */
         .ingame-logo {
-            width: 60px; /* 稍微加大 */
+            width: 60px;
             height: auto;
             display: block;
         }
 
-        /* 暫停按鈕樣式 (不再是 absolute) */
         #pauseBtn {
-            background: white;
+            background: #f0f0f0;
             border: 2px solid #ccc;
             border-radius: 50%;
             width: 44px;
@@ -63,7 +61,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             transition: transform 0.1s;
         }
-        #pauseBtn:active { transform: scale(0.9); background: #eee; }
+        #pauseBtn:active { transform: scale(0.9); background: #ddd; }
 
         /* --- HUD (資訊列) --- */
         #hud-container {
@@ -75,10 +73,11 @@
             color: #2c3e50;
             font-size: 1.1em;
             align-items: center;
-            background: rgba(255,255,255,0.5); /* 半透明背景增加可讀性 */
+            background: rgba(240,240,240,0.8); /* 淺灰背景 */
             padding: 5px 10px;
             border-radius: 10px;
             box-sizing: border-box;
+            border: 1px solid #ddd;
         }
 
         .level-badge {
@@ -109,38 +108,39 @@
         }
 
         canvas {
-            background-color: #222;
+            background-color: #ffffff; /* Canvas 白底 */
             display: block;
             border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* 陰影淡一點 */
+            border: 2px solid #eee; /* 加個邊框以免太白看不見邊界 */
             width: 95%;
             height: auto;
             aspect-ratio: 1 / 1;
         }
 
-        /* --- 虛擬控制器 (加大版) --- */
+        /* --- 虛擬控制器 --- */
         #controls-area {
             margin-top: 10px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(2, 1fr);
-            gap: 12px; /* 增加間距 */
-            width: 280px; /* 加寬整體寬度 */
-            height: 180px; /* 加高整體高度 */
+            gap: 12px;
+            width: 280px;
+            height: 180px;
             user-select: none;
-            padding-bottom: 20px; /* 底部留空 */
+            padding-bottom: 20px;
         }
 
         .d-pad-btn {
-            background-color: #e0e0e0;
-            border: 2px solid #bbb;
+            background-color: #f9f9f9;
+            border: 2px solid #ddd;
             border-radius: 18px;
-            font-size: 32px; /* 字體加大 */
+            font-size: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 5px #999;
+            box-shadow: 0 5px #ccc;
             transition: all 0.1s;
             color: #555;
             touch-action: manipulation;
@@ -161,7 +161,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #f0f8ff; 
+            background: rgba(255,255,255,0.95); /* 更白的遮罩 */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -189,7 +189,7 @@
             width: 85%;
             font-size: 0.9em;
             text-align: left;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
         }
 
         .knowledge-card {
@@ -210,7 +210,7 @@
             background-color: #4CAF50;
             border: none;
             color: white;
-            padding: 15px 40px; /* 按鈕加大 */
+            padding: 15px 40px;
             font-size: 1.3em;
             border-radius: 50px;
             box-shadow: 0 4px #2e7d32;
@@ -275,17 +275,15 @@
 <body>
 
     <div id="game-wrapper">
-        <!-- 置頂欄：解決 Logo 遮擋問題 -->
         <div id="top-bar">
             <img src="logo1.png" alt="Game Logo" class="ingame-logo" onerror="this.style.opacity='0.3'; this.alt='Logo1 Here'">
-            <!-- 暫停按鈕 -->
             <button id="pauseBtn" class="hidden" onclick="pauseGame()">⏸</button>
         </div>
 
         <div id="hud-container">
             <div>
                 <span class="level-badge" id="levelDisplay">Day 1</span>
-                <span id="timerDisplay" class="timer-badge">30s</span>
+                <span id="timerDisplay" class="timer-badge">60s</span>
             </div>
             <div>
                 <span>🎯目標: <span id="targetScore" style="color:#d32f2f">3</span></span>
@@ -316,7 +314,7 @@
         <div class="knowledge-card">
             <h3>🍎 點樣數蘋果？</h3>
             <p>
-                1. 見到蘋果，個心就數<strong>「1」</strong><br>
+                1. 食了個蘋果，個心就數<strong>「1」</strong><br>
                 2. 食多個，就數<strong>「2」</strong>...<br>
                 3. 數到目標數目，就<strong>即刻停</strong>！<br>
                 (要數得好準先得架！💪)
@@ -333,7 +331,7 @@
         </div>
         
         <!-- 加入 onclick 直接解鎖 Audio -->
-        <button class="btn-primary" onclick="userInteracted(); showTutorialGoal()">▶ 看示範教學</button>
+        <button class="btn-primary" onclick="forceAudioUnlock(); showTutorialGoal()">▶ 看示範教學</button>
     </div>
 
     <!-- 1.5 示範目標彈窗 -->
@@ -348,7 +346,7 @@
 
         <p style="color: #666">準備好了嗎？</p>
         
-        <button class="btn-primary" onclick="userInteracted(); runTutorial()">▶ 開始播放</button>
+        <button class="btn-primary" onclick="forceAudioUnlock(); runTutorial()">▶ 開始播放</button>
     </div>
 
     <!-- 2. 每日目標彈窗 -->
@@ -363,7 +361,7 @@
 
         <p style="color: #666">準備好了嗎？</p>
         
-        <button class="btn-primary" onclick="userInteracted(); startDayAction()">🚀 出發！</button>
+        <button class="btn-primary" onclick="forceAudioUnlock(); startDayAction()">🚀 出發！</button>
     </div>
 
     <!-- 3. 結束/過關畫面 -->
@@ -372,11 +370,11 @@
         <p id="endMessage" style="font-size: 1.2em; margin: 15px 0; font-weight: bold;"></p>
         
         <div id="btnGroupSuccess" class="hidden">
-            <button class="btn-primary" onclick="userInteracted(); nextDay()">進入下一天 ➡</button>
+            <button class="btn-primary" onclick="forceAudioUnlock(); nextDay()">進入下一天 ➡</button>
         </div>
         
         <div id="btnGroupFail" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
-            <button class="btn-primary btn-danger" onclick="userInteracted(); retryDay()">💪 再接再厲</button>
+            <button class="btn-primary btn-danger" onclick="forceAudioUnlock(); retryDay()">💪 再接再厲</button>
             <button class="btn-primary btn-secondary" onclick="goHome()">🏠 回到首頁</button>
         </div>
         
@@ -403,9 +401,9 @@
         const gridSize = 20; 
         const tileCount = 20; 
 
-        // --- 關卡設定 (Days) ---
+        // --- 關卡設定 (Day 1 改為 60秒) ---
         const levels = [
-            { target: 3, speed: 250, bombs: 0, time: 30 },
+            { target: 3, speed: 250, bombs: 0, time: 60 },
             { target: 5, speed: 230, bombs: 0, time: 50 },
             { target: 7, speed: 210, bombs: 1, time: 70 },
             { target: 9, speed: 190, bombs: 3, time: 90 },
@@ -428,32 +426,41 @@
         let isPaused = false;
         let synth = window.speechSynthesis; 
 
-        // --- 音樂系統 (BGM) & Safari 解鎖 ---
+        // --- 音樂系統 (BGM) & 強力解鎖 ---
         let audioCtx;
         let bgmInterval;
-        let noteIndex = 0;
+        let audioUnlocked = false;
 
-        // 全局解鎖函數：必須綁定在 onclick 上
-        function userInteracted() {
-            initAudio();
-        }
+        // 強力喚醒函數：在按鈕點擊時調用
+        function forceAudioUnlock() {
+            if (audioUnlocked && audioCtx && audioCtx.state === 'running') return;
 
-        function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-            // 嘗試恢復狀態 (Safari 關鍵)
+
+            // 播放一個靜音緩衝區來強制解鎖 iOS audio
+            const buffer = audioCtx.createBuffer(1, 1, 22050);
+            const source = audioCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioCtx.destination);
+            source.start(0);
+
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume().then(() => {
-                    console.log("AudioContext resumed successfully");
+                    console.log("AudioContext Force Resumed");
+                    audioUnlocked = true;
                 });
+            } else {
+                audioUnlocked = true;
             }
         }
 
         // 簡單的音效合成器
         function playTone(freq, duration, type = 'square') {
-            if(!audioCtx || audioCtx.state === 'suspended') return; // 如果未解鎖則不播
-            
+            if(!audioCtx) return; 
+            if(audioCtx.state === 'suspended') audioCtx.resume(); // 再次嘗試恢復
+
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = type;
@@ -469,8 +476,7 @@
         }
 
         function startBGM() {
-            // 再次嘗試確保 AudioContext 存在
-            initAudio(); 
+            forceAudioUnlock(); // 雙重保險
             
             const melody = [
                 {f: 262, d: 0.2}, {f: 330, d: 0.2}, {f: 392, d: 0.2}, {f: 523, d: 0.4}, 
@@ -496,15 +502,10 @@
             if(bgmInterval) clearInterval(bgmInterval);
         }
 
-        // 輔助：全局監聽點擊，確保解鎖 (雙重保險)
-        document.body.addEventListener('click', function() {
-            initAudio();
-        }, { once: true });
-        
-        document.body.addEventListener('touchstart', function() {
-            initAudio();
-        }, { once: true });
-
+        // 全局監聽，嘗試解鎖
+        ['click', 'touchstart', 'keydown'].forEach(evt => 
+            document.body.addEventListener(evt, forceAudioUnlock, { once: true })
+        );
 
         // --- 輔助工具：數字轉中文 ---
         function toChineseNum(num) {
@@ -515,14 +516,12 @@
 
         // --- 流程控制 ---
 
-        // 1. 準備示範
         function showTutorialGoal() {
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('tutorialGoalScreen').classList.remove('hidden');
             speak("示範開始，請看清楚，吃兩個蘋果就回家。");
         }
 
-        // 2. 開始示範
         function runTutorial() {
             startBGM(); 
             document.getElementById('tutorialGoalScreen').classList.add('hidden');
@@ -548,7 +547,6 @@
             gameInterval = setInterval(gameLoop, 200); 
         }
 
-        // 3. 示範結束
         function endTutorial() {
             clearInterval(gameInterval);
             isDemoMode = false;
@@ -556,7 +554,6 @@
             showDailyGoal();
         }
 
-        // 4. 顯示 Day 1 彈窗
         function showDailyGoal() {
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('endScreen').classList.add('hidden');
@@ -573,7 +570,6 @@
             document.getElementById('dailyGoalScreen').classList.remove('hidden');
         }
 
-        // 5. 正式開始 Day 1
         function startDayAction() {
             document.getElementById('dailyGoalScreen').classList.add('hidden');
             document.getElementById('pauseBtn').classList.remove('hidden'); 
@@ -613,7 +609,6 @@
             }
         }
 
-        // --- 暫停系統 ---
         function pauseGame() {
             if (isDemoMode) return; 
             isPaused = true;
@@ -632,7 +627,6 @@
             startIntervals(levelConfig.speed);
         }
 
-        // --- 計時器 ---
         function tickTimer() {
             timeLeft--;
             updateTimerDisplay();
@@ -654,7 +648,6 @@
             if (timeLeft > 5) el.classList.remove('urgent');
         }
 
-        // --- 遊戲循環 ---
         function gameLoop() {
             if (isDemoMode) {
                 autoPilot();
@@ -667,7 +660,6 @@
             const levelConfig = levels[currentDayIndex];
             const head = {x: snake[0].x + velocity.x, y: snake[0].y + velocity.y};
 
-            // 穿牆
             if (head.x < 0) head.x = tileCount - 1;
             if (head.x >= tileCount) head.x = 0;
             if (head.y < 0) head.y = tileCount - 1;
@@ -675,17 +667,14 @@
 
             snake.unshift(head);
 
-            // 吃蘋果
             if (head.x === apple.x && head.y === apple.y) {
                 score++;
                 updateScoreDisplay();
                 
-                // 示範模式判定 (吃2個)
                 if (isTutorialMode) {
                     speakNumber(score);
                     spawnApple(); 
                 } 
-                // 一般模式判定
                 else if (score > levelConfig.target) {
                     if (!isDemoMode) {
                         speak("哎呀！吃太多了！");
@@ -700,7 +689,6 @@
                 snake.pop(); 
             }
 
-            // 撞炸彈
             if (!isDemoMode && !isTutorialMode) {
                 for (let b of bombs) {
                     if (head.x === b.x && head.y === b.y) {
@@ -711,9 +699,7 @@
                 }
             }
 
-            // 進屋
             if (head.x === home.x && head.y === home.y) {
-                // 示範模式過關 (需吃滿2個)
                 if (isTutorialMode) {
                     if (score === 2) {
                         endTutorial();
@@ -721,7 +707,6 @@
                     } 
                 }
 
-                // 一般模式過關
                 if (!isTutorialMode) {
                     if (score === levelConfig.target) {
                         if(isDemoMode) {
@@ -742,18 +727,36 @@
         }
 
         function draw() {
-            // 背景 (全黑)
-            ctx.fillStyle = '#222';
+            // 背景 (白底)
+            ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 畫網格 (輔助數格)
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+            for(let i = 0; i < tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
 
             // 蛇
             for (let i = 0; i < snake.length; i++) {
                 ctx.fillStyle = (i === 0) ? '#4CAF50' : '#81C784';
                 ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize - 2, gridSize - 2);
                 if (i === 0) { 
-                    ctx.fillStyle = 'white';
+                    ctx.fillStyle = 'white'; // 蛇眼白
                     ctx.fillRect((snake[i].x * gridSize) + 4, (snake[i].y * gridSize) + 4, 4, 4);
                     ctx.fillRect((snake[i].x * gridSize) + 12, (snake[i].y * gridSize) + 4, 4, 4);
+                    
+                    ctx.fillStyle = 'black'; // 蛇眼珠 (在白底上需要黑眼珠才明顯)
+                    ctx.fillRect((snake[i].x * gridSize) + 5, (snake[i].y * gridSize) + 5, 2, 2);
+                    ctx.fillRect((snake[i].x * gridSize) + 13, (snake[i].y * gridSize) + 5, 2, 2);
                 }
             }
 
@@ -764,6 +767,7 @@
                 ctx.font = '18px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#333'; // 確保在白底上可見
                 ctx.fillText("💣", (b.x * gridSize) + 10, (b.y * gridSize) + 10);
             }
 
@@ -935,7 +939,8 @@
             
             document.getElementById('startScreen').classList.remove('hidden');
             
-            ctx.fillStyle = '#222';
+            // 繪製初始白底
+            ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
@@ -996,7 +1001,8 @@
             else if (head.y > target.y) velocity = {x: 0, y: -1};
         }
 
-        ctx.fillStyle = '#222';
+        // 初始化繪圖 (白底)
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     </script>
