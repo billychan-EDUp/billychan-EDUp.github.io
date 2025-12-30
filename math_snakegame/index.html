@@ -23,53 +23,44 @@
         #game-wrapper {
             position: relative;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px; /* 稍微加寬以容納大按鈕 */
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 0px; 
+            padding-top: 5px;
+            height: 100%;
         }
 
-        canvas {
-            background-color: #222;
-            display: block;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        /* --- 頂部欄 (Logo & Pause) - 解決遮擋問題 --- */
+        #top-bar {
             width: 95%;
-            height: auto;
-            aspect-ratio: 1 / 1;
+            display: flex;
+            justify-content: space-between; /* 左右對齊 */
+            align-items: center;
+            margin-bottom: 5px;
+            min-height: 50px; /* 預留高度 */
         }
 
-        /* --- Logo (遊戲中) --- */
+        /* Logo 樣式 (不再是 absolute) */
         .ingame-logo {
-            position: absolute;
-            top: 5px;      
-            left: 10px;    
-            width: 50px;
+            width: 60px; /* 稍微加大 */
             height: auto;
-            z-index: 20;
-            opacity: 0.9;
-            pointer-events: none;
-            filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5));
+            display: block;
         }
 
-        /* --- 暫停按鈕 --- */
+        /* 暫停按鈕樣式 (不再是 absolute) */
         #pauseBtn {
-            position: absolute;
-            top: 5px;      
-            right: 10px;
-            background: rgba(255, 255, 255, 0.9);
+            background: white;
             border: 2px solid #ccc;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
+            width: 44px;
+            height: 44px;
+            font-size: 22px;
             cursor: pointer;
-            z-index: 30;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             transition: transform 0.1s;
         }
         #pauseBtn:active { transform: scale(0.9); background: #eee; }
@@ -78,13 +69,16 @@
         #hud-container {
             display: flex;
             justify-content: space-between;
-            width: 90%;
-            margin-top: 55px; 
-            margin-bottom: 10px;
+            width: 95%;
+            margin-bottom: 5px;
             font-weight: bold;
             color: #2c3e50;
-            font-size: 1.0em;
+            font-size: 1.1em;
             align-items: center;
+            background: rgba(255,255,255,0.5); /* 半透明背景增加可讀性 */
+            padding: 5px 10px;
+            border-radius: 10px;
+            box-sizing: border-box;
         }
 
         .level-badge {
@@ -113,6 +107,52 @@
             50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
+
+        canvas {
+            background-color: #222;
+            display: block;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            width: 95%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+        }
+
+        /* --- 虛擬控制器 (加大版) --- */
+        #controls-area {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 12px; /* 增加間距 */
+            width: 280px; /* 加寬整體寬度 */
+            height: 180px; /* 加高整體高度 */
+            user-select: none;
+            padding-bottom: 20px; /* 底部留空 */
+        }
+
+        .d-pad-btn {
+            background-color: #e0e0e0;
+            border: 2px solid #bbb;
+            border-radius: 18px;
+            font-size: 32px; /* 字體加大 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 5px #999;
+            transition: all 0.1s;
+            color: #555;
+            touch-action: manipulation;
+        }
+
+        .d-pad-btn:active, .d-pad-btn.active {
+            background-color: #81C784;
+            color: white;
+            box-shadow: 0 0 #666;
+            transform: translateY(5px);
+        }
+        .spacer { visibility: hidden; }
 
         /* --- 覆蓋層 --- */
         .overlay {
@@ -170,14 +210,14 @@
             background-color: #4CAF50;
             border: none;
             color: white;
-            padding: 12px 30px;
-            font-size: 1.2em;
+            padding: 15px 40px; /* 按鈕加大 */
+            font-size: 1.3em;
             border-radius: 50px;
             box-shadow: 0 4px #2e7d32;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 15px;
             font-weight: bold;
-            min-width: 180px;
+            min-width: 200px;
         }
         .btn-primary:active {
             box-shadow: 0 2px #2e7d32;
@@ -199,41 +239,6 @@
         .btn-danger:active {
             box-shadow: 0 2px #F57C00;
         }
-
-        /* --- 虛擬控制器 --- */
-        #controls-area {
-            margin-top: 15px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 10px;
-            width: 200px;
-            height: 140px;
-            user-select: none;
-        }
-
-        .d-pad-btn {
-            background-color: #ddd;
-            border: 2px solid #bbb;
-            border-radius: 15px;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px #999;
-            transition: all 0.1s;
-            color: #555;
-            touch-action: manipulation;
-        }
-
-        .d-pad-btn:active, .d-pad-btn.active {
-            background-color: #81C784;
-            color: white;
-            box-shadow: 0 0 #666;
-            transform: translateY(4px);
-        }
-        .spacer { visibility: hidden; }
 
         #toast {
             position: absolute;
@@ -270,10 +275,12 @@
 <body>
 
     <div id="game-wrapper">
-        <img src="logo1.png" alt="Game Logo" class="ingame-logo" onerror="this.style.opacity='0.3'; this.alt='Logo1 Here'">
-
-        <!-- 暫停按鈕 (預設隱藏) -->
-        <button id="pauseBtn" class="hidden" onclick="pauseGame()">⏸</button>
+        <!-- 置頂欄：解決 Logo 遮擋問題 -->
+        <div id="top-bar">
+            <img src="logo1.png" alt="Game Logo" class="ingame-logo" onerror="this.style.opacity='0.3'; this.alt='Logo1 Here'">
+            <!-- 暫停按鈕 -->
+            <button id="pauseBtn" class="hidden" onclick="pauseGame()">⏸</button>
+        </div>
 
         <div id="hud-container">
             <div>
@@ -325,7 +332,8 @@
             </ul>
         </div>
         
-        <button class="btn-primary" onclick="showTutorialGoal()">▶ 看示範教學</button>
+        <!-- 加入 onclick 直接解鎖 Audio -->
+        <button class="btn-primary" onclick="userInteracted(); showTutorialGoal()">▶ 看示範教學</button>
     </div>
 
     <!-- 1.5 示範目標彈窗 -->
@@ -340,7 +348,7 @@
 
         <p style="color: #666">準備好了嗎？</p>
         
-        <button class="btn-primary" onclick="runTutorial()">▶ 開始播放</button>
+        <button class="btn-primary" onclick="userInteracted(); runTutorial()">▶ 開始播放</button>
     </div>
 
     <!-- 2. 每日目標彈窗 -->
@@ -355,7 +363,7 @@
 
         <p style="color: #666">準備好了嗎？</p>
         
-        <button class="btn-primary" onclick="startDayAction()">🚀 出發！</button>
+        <button class="btn-primary" onclick="userInteracted(); startDayAction()">🚀 出發！</button>
     </div>
 
     <!-- 3. 結束/過關畫面 -->
@@ -364,11 +372,11 @@
         <p id="endMessage" style="font-size: 1.2em; margin: 15px 0; font-weight: bold;"></p>
         
         <div id="btnGroupSuccess" class="hidden">
-            <button class="btn-primary" onclick="nextDay()">進入下一天 ➡</button>
+            <button class="btn-primary" onclick="userInteracted(); nextDay()">進入下一天 ➡</button>
         </div>
         
         <div id="btnGroupFail" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
-            <button class="btn-primary btn-danger" onclick="retryDay()">💪 再接再厲</button>
+            <button class="btn-primary btn-danger" onclick="userInteracted(); retryDay()">💪 再接再厲</button>
             <button class="btn-primary btn-secondary" onclick="goHome()">🏠 回到首頁</button>
         </div>
         
@@ -420,24 +428,32 @@
         let isPaused = false;
         let synth = window.speechSynthesis; 
 
-        // --- 音樂系統 (BGM) ---
+        // --- 音樂系統 (BGM) & Safari 解鎖 ---
         let audioCtx;
         let bgmInterval;
         let noteIndex = 0;
+
+        // 全局解鎖函數：必須綁定在 onclick 上
+        function userInteracted() {
+            initAudio();
+        }
 
         function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-            // 關鍵修改：在每次初始化時檢查並恢復 AudioContext
+            // 嘗試恢復狀態 (Safari 關鍵)
             if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+                audioCtx.resume().then(() => {
+                    console.log("AudioContext resumed successfully");
+                });
             }
         }
 
         // 簡單的音效合成器
         function playTone(freq, duration, type = 'square') {
-            if(!audioCtx) return;
+            if(!audioCtx || audioCtx.state === 'suspended') return; // 如果未解鎖則不播
+            
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = type;
@@ -445,7 +461,6 @@
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             
-            // 提升音量：從 0.02 提升到 0.1
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime); 
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
 
@@ -454,14 +469,14 @@
         }
 
         function startBGM() {
-            initAudio(); // 確保 AudioContext 已啟動
+            // 再次嘗試確保 AudioContext 存在
+            initAudio(); 
             
-            // 快樂的旋律 (C大調)
             const melody = [
-                {f: 262, d: 0.2}, {f: 330, d: 0.2}, {f: 392, d: 0.2}, {f: 523, d: 0.4}, // C E G C
-                {f: 392, d: 0.2}, {f: 330, d: 0.2}, {f: 262, d: 0.4}, // G E C
-                {f: 294, d: 0.2}, {f: 349, d: 0.2}, {f: 392, d: 0.2}, {f: 440, d: 0.4}, // D F G A
-                {f: 392, d: 0.2}, {f: 349, d: 0.2}, {f: 294, d: 0.4}  // G F D
+                {f: 262, d: 0.2}, {f: 330, d: 0.2}, {f: 392, d: 0.2}, {f: 523, d: 0.4}, 
+                {f: 392, d: 0.2}, {f: 330, d: 0.2}, {f: 262, d: 0.4}, 
+                {f: 294, d: 0.2}, {f: 349, d: 0.2}, {f: 392, d: 0.2}, {f: 440, d: 0.4}, 
+                {f: 392, d: 0.2}, {f: 349, d: 0.2}, {f: 294, d: 0.4} 
             ];
             
             if(bgmInterval) clearInterval(bgmInterval);
@@ -474,25 +489,34 @@
                 playTone(note.f, note.d, 'square');
                 tick++;
 
-            }, 250); // 每 250ms 播放一個音符
+            }, 250); 
         }
 
         function stopBGM() {
             if(bgmInterval) clearInterval(bgmInterval);
         }
 
-        // --- 輔助工具：數字轉中文 (解決讀音問題) ---
+        // 輔助：全局監聽點擊，確保解鎖 (雙重保險)
+        document.body.addEventListener('click', function() {
+            initAudio();
+        }, { once: true });
+        
+        document.body.addEventListener('touchstart', function() {
+            initAudio();
+        }, { once: true });
+
+
+        // --- 輔助工具：數字轉中文 ---
         function toChineseNum(num) {
             const map = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
             if (num <= 10) return map[num];
-            return num; // 超過10暫時回傳數字，目前關卡只有5天
+            return num; 
         }
 
         // --- 流程控制 ---
 
         // 1. 準備示範
         function showTutorialGoal() {
-            initAudio(); // 嘗試在第一次點擊時喚醒 Audio
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('tutorialGoalScreen').classList.remove('hidden');
             speak("示範開始，請看清楚，吃兩個蘋果就回家。");
@@ -500,18 +524,17 @@
 
         // 2. 開始示範
         function runTutorial() {
-            startBGM(); // 啟動音樂
+            startBGM(); 
             document.getElementById('tutorialGoalScreen').classList.add('hidden');
             
             isDemoMode = true;
             isTutorialMode = true;
             
-            // 示範設定：目標吃 2 個，位置拉開
             score = 0;
-            snake = [{x: 3, y: 5}, {x: 2, y: 5}, {x: 1, y: 5}]; // 起點在左上
+            snake = [{x: 3, y: 5}, {x: 2, y: 5}, {x: 1, y: 5}]; 
             velocity = {x: 1, y: 0};
-            apple = {x: 16, y: 5}; // 第一個蘋果在右上 (拉開水平距離)
-            home = {x: 3, y: 15};  // 家在左下
+            apple = {x: 16, y: 5}; 
+            home = {x: 3, y: 15};  
             bombs = [];
             
             document.getElementById('levelDisplay').innerText = "示範中";
@@ -525,7 +548,7 @@
             gameInterval = setInterval(gameLoop, 200); 
         }
 
-        // 3. 示範結束 -> 顯示 Day 1 目標
+        // 3. 示範結束
         function endTutorial() {
             clearInterval(gameInterval);
             isDemoMode = false;
@@ -535,7 +558,6 @@
 
         // 4. 顯示 Day 1 彈窗
         function showDailyGoal() {
-            initAudio(); // 確保每次進入新關卡前都檢查 Audio
             document.getElementById('startScreen').classList.add('hidden');
             document.getElementById('endScreen').classList.add('hidden');
             document.getElementById('tutorialGoalScreen').classList.add('hidden');
@@ -546,7 +568,6 @@
             document.getElementById('dailyTitle').innerText = `Day ${displayDay}`;
             document.getElementById('dailyTargetNum').innerText = levelConfig.target;
             
-            // 修正讀音：使用中文數字確保讀出「第二日」而不是「第兩日」
             speak(`第 ${toChineseNum(displayDay)} 日，今日目標，吃 ${levelConfig.target} 個蘋果。`);
 
             document.getElementById('dailyGoalScreen').classList.remove('hidden');
@@ -554,7 +575,6 @@
 
         // 5. 正式開始 Day 1
         function startDayAction() {
-            initAudio(); // 再次確保 Audio
             document.getElementById('dailyGoalScreen').classList.add('hidden');
             document.getElementById('pauseBtn').classList.remove('hidden'); 
             isDemoMode = false;
@@ -663,7 +683,6 @@
                 // 示範模式判定 (吃2個)
                 if (isTutorialMode) {
                     speakNumber(score);
-                    // 吃到第1個後，再生第二個
                     spawnApple(); 
                 } 
                 // 一般模式判定
@@ -776,10 +795,10 @@
         function spawnApple() {
             let valid = false;
             let tempX, tempY;
-            // 示範模式下，我們手動控制下一個蘋果位置，確保路徑簡單
+            
             if (isTutorialMode) {
                 if (score === 1) {
-                    apple.x = 16; apple.y = 15; // 第二個蘋果在右下，讓蛇往下走再往左，形成 U 字形
+                    apple.x = 16; apple.y = 15; 
                     return;
                 }
             }
@@ -850,7 +869,6 @@
         function levelComplete() {
             clearInterval(gameInterval); 
             clearInterval(timerInterval);
-            // 修改：語音改為「太好了」
             speak("太好了！過關！");
             
             document.getElementById('endScreen').classList.remove('hidden');
