@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Snake Game: v19.5 (Kids Edition)</title>
+    <title>Math Snake Game: v19.6 (Super Kids)</title>
     <style>
         /* --- 全局設定 --- */
         body {
@@ -151,29 +151,29 @@
             aspect-ratio: 1 / 1;
         }
 
-        /* --- 虛擬控制器 --- */
+        /* --- 虛擬控制器 (加大版) --- */
         #controls-area {
             margin-top: 10px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(2, 1fr);
-            gap: 12px;
-            width: 280px;
-            height: 180px;
+            gap: 15px;
+            width: 340px; /* 加寬 */
+            height: 220px; /* 加高 */
             user-select: none;
             padding-bottom: 20px;
         }
 
         .d-pad-btn {
             background-color: #f9f9f9;
-            border: 2px solid #ddd;
-            border-radius: 18px;
-            font-size: 32px;
+            border: 3px solid #ddd;
+            border-radius: 20px;
+            font-size: 45px; /* 字體加大 */
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 5px #ccc;
+            box-shadow: 0 6px #ccc;
             transition: all 0.1s;
             color: #555;
             touch-action: manipulation;
@@ -183,7 +183,7 @@
             background-color: #81C784;
             color: white;
             box-shadow: 0 0 #666;
-            transform: translateY(5px);
+            transform: translateY(6px);
         }
         .spacer { visibility: hidden; }
 
@@ -213,7 +213,7 @@
             min-height: 50px;
         }
 
-        /* --- 新增：適合對象標籤 --- */
+        /* --- 適合對象標籤 --- */
         .age-badge {
             background-color: #FFF9C4;
             color: #FBC02D;
@@ -368,7 +368,7 @@
         <img src="logo.png" alt="Studio Logo" class="start-logo" onerror="this.style.border='2px dashed #ccc'; this.alt='Logo Here'">
         
         <h2 style="color: #333; margin: 5px 0;">Math Snake Game</h2>
-        <!-- 新增適合對象標籤 -->
+        <!-- 適合對象標籤 -->
         <div class="age-badge">適合對象：4-7歲 👶</div>
         
         <div class="knowledge-card">
@@ -462,21 +462,20 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // ** 優化：放大格子 (10x10) 適合幼兒 **
-        const tileCount = 10; 
-        const gridSize = canvas.width / tileCount; // 400 / 10 = 40px per grid
+        // ** 優化：8x8 超大格子 **
+        const tileCount = 8; 
+        const gridSize = canvas.width / tileCount; // 400 / 8 = 50px per grid
 
         // --- 關卡設定 ---
         const HIDDEN_DAY_START_INDEX = 3; 
 
-        // ** 優化：速度減慢 (400ms -> 260ms)，適合 4-7 歲 **
-        // ** 優化：Day 4 目標 6, Day 5 目標 8 **
+        // ** 優化：恆定慢速 500ms (0.5秒) **
         const levels = [
-            { target: 3, speed: 400, bombs: 0, time: 60 },   // Day 1 (Very Slow)
-            { target: 5, speed: 360, bombs: 0, time: 80 },   // Day 2
-            { target: 7, speed: 320, bombs: 1, time: 100 },  // Day 3
-            { target: 6, speed: 300, bombs: 2, time: 120 },  // Day 4 (Hidden, Target 6)
-            { target: 8, speed: 280, bombs: 3, time: 140 }   // Day 5 (Target 8)
+            { target: 3, speed: 500, bombs: 0, time: 60 },   // Day 1
+            { target: 5, speed: 500, bombs: 0, time: 80 },   // Day 2
+            { target: 7, speed: 500, bombs: 1, time: 100 },  // Day 3
+            { target: 6, speed: 500, bombs: 2, time: 120 },  // Day 4 (Hidden, Target 6)
+            { target: 8, speed: 500, bombs: 3, time: 140 }   // Day 5 (Target 8)
         ];
 
         // --- 變數 ---
@@ -558,7 +557,7 @@
                         this.playTone(note.f, note.d);
                         noteIndex++;
                     }
-                }, 250); // BGM 速度維持不變，保持歡快
+                }, 250); // BGM 速度
             },
 
             stopBGM: function() {
@@ -590,13 +589,13 @@
             isTutorialMode = true;
             
             score = 0;
-            // 修正初始位置以適應 10x10 網格
+            // 修正初始位置 (8x8)
             snake = [{x: 2, y: 2}, {x: 1, y: 2}]; 
             velocity = {x: 1, y: 0};
             lastVelocity = {x: 1, y: 0}; 
             nextMoves = []; 
-            apple = {x: 7, y: 2}; 
-            home = {x: 2, y: 7};  
+            apple = {x: 6, y: 2}; 
+            home = {x: 2, y: 6};  
             bombs = [];
             
             document.getElementById('levelDisplay').innerText = "示範中";
@@ -609,7 +608,7 @@
             speak("出發！");
 
             if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(gameLoop, 350); // 示範速度也減慢
+            gameInterval = setInterval(gameLoop, 500); // 示範速度一致
         }
 
         function endTutorial() {
@@ -669,8 +668,8 @@
 
         function initLevel() {
             const levelConfig = levels[currentDayIndex];
-            // 修正初始位置以適應 10x10 網格
-            snake = [{x: 4, y: 5}, {x: 3, y: 5}]; 
+            // 修正初始位置 (8x8)
+            snake = [{x: 3, y: 4}, {x: 2, y: 4}]; 
             score = 0;
             velocity = {x: 1, y: 0}; 
             lastVelocity = {x: 1, y: 0}; 
@@ -884,7 +883,7 @@
             drawApple(apple.x, apple.y);
 
             for (let b of bombs) {
-                ctx.font = `${gridSize * 0.8}px Arial`; // 動態調整字體大小
+                ctx.font = `${gridSize * 0.8}px Arial`; 
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#333'; 
@@ -893,7 +892,7 @@
 
             ctx.fillStyle = '#2196F3';
             ctx.fillRect(home.x * gridSize, home.y * gridSize, gridSize - 2, gridSize - 2);
-            ctx.font = `${gridSize * 0.7}px Arial`; // 動態調整字體大小
+            ctx.font = `${gridSize * 0.7}px Arial`; 
             ctx.fillStyle = 'white';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -920,7 +919,7 @@
             
             if (isTutorialMode) {
                 if (score === 1) {
-                    apple.x = 7; apple.y = 7; 
+                    apple.x = 6; apple.y = 6; 
                     return;
                 }
             }
@@ -940,8 +939,7 @@
             while (!valid) {
                 home.x = Math.floor(Math.random() * tileCount);
                 home.y = Math.floor(Math.random() * tileCount);
-                // 距離檢查放寬一點，因為只有10格
-                let distOK = (Math.abs(home.x - 5) >= 3 || Math.abs(home.y - 5) >= 3);
+                let distOK = (Math.abs(home.x - 4) >= 3 || Math.abs(home.y - 4) >= 3);
                 if (distOK && !isOccupied(home.x, home.y, 'home')) valid = true;
             }
         }
@@ -954,8 +952,7 @@
                 while (!valid) {
                     bomb.x = Math.floor(Math.random() * tileCount);
                     bomb.y = Math.floor(Math.random() * tileCount);
-                    // 距離檢查放寬
-                    let distOK = (Math.abs(bomb.x - 5) >= 2 || Math.abs(bomb.y - 5) >= 2);
+                    let distOK = (Math.abs(bomb.x - 4) >= 2 || Math.abs(bomb.y - 4) >= 2);
                     if (distOK && !isOccupied(bomb.x, bomb.y)) valid = true;
                 }
                 bombs.push(bomb);
