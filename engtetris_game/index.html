@@ -1,930 +1,1020 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Husky Word Tetris</title>
-    
-    <!-- 引入 Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 引入 React 和 ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- 引入 Babel 用於解析 JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
+    <title>Day 1: Math Snake Game</title>
     <style>
-        /* 自定義樣式 */
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
-        @keyframes fade-out {
-          0% { opacity: 1; transform: scale(0.9); }
-          10% { opacity: 1; transform: scale(1.1); }
-          100% { opacity: 0; transform: scale(1); }
-        }
-        .animate-fade-out { animation: fade-out 1.5s forwards ease-out; }
-        
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow { animation: spin-slow 3s linear infinite; }
-
-        /* 防止手機端雙擊縮放和長按選取 */
+        /* --- 全局設定 --- */
         body {
-            touch-action: none;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-            /* 確保在 iOS 上也能滿版 */
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
             height: 100vh;
-            height: 100dvh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* --- 遊戲容器 --- */
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 5px;
+            height: 100%;
+        }
+
+        /* --- 頂部欄 --- */
+        #top-bar {
+            width: 95%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            min-height: 50px;
+        }
+
+        .ingame-logo {
+            width: 60px;
+            height: auto;
+            display: block;
+        }
+
+        #pauseBtn {
+            background: #f0f0f0;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        #pauseBtn:active { transform: scale(0.9); background: #ddd; }
+
+        /* --- HUD (資訊列) --- */
+        #hud-container {
+            display: flex;
+            justify-content: space-between;
+            width: 95%;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+            align-items: center;
+            background: rgba(240,240,240,0.8);
+            padding: 5px 10px;
+            border-radius: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+        }
+
+        .level-badge {
+            background: #FF9800;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.9em;
         }
         
-        /* 按鈕按下效果 */
-        .btn-active:active {
-            transform: scale(0.95);
-            background-color: rgba(255, 255, 255, 0.1);
+        .timer-badge {
+            background: #607D8B;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 5px;
+            min-width: 50px;
+            text-align: center;
         }
+        .timer-badge.urgent {
+            background: #F44336;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        canvas {
+            background-color: #ffffff;
+            display: block;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 2px solid #eee;
+            width: 95%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+        }
+
+        /* --- 虛擬控制器 --- */
+        #controls-area {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 12px;
+            width: 280px;
+            height: 180px;
+            user-select: none;
+            padding-bottom: 20px;
+        }
+
+        .d-pad-btn {
+            background-color: #f9f9f9;
+            border: 2px solid #ddd;
+            border-radius: 18px;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 5px #ccc;
+            transition: all 0.1s;
+            color: #555;
+            touch-action: manipulation;
+        }
+
+        .d-pad-btn:active, .d-pad-btn.active {
+            background-color: #81C784;
+            color: white;
+            box-shadow: 0 0 #666;
+            transform: translateY(5px);
+        }
+        .spacer { visibility: hidden; }
+
+        /* --- 覆蓋層 --- */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 100;
+        }
+        .hidden { display: none !important; }
+
+        .start-logo {
+            max-width: 120px;
+            margin-bottom: 10px;
+            display: block;
+            min-height: 50px;
+        }
+
+        .objective-card {
+            background: #fff;
+            border: 2px solid #2196F3;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin: 5px 0;
+            width: 85%;
+            font-size: 0.9em;
+            text-align: left;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+
+        .knowledge-card {
+            background: #E8F5E9;
+            border-left: 5px solid #4CAF50;
+            padding: 10px;
+            margin: 10px 0;
+            width: 85%;
+            font-size: 0.9em;
+            text-align: left;
+            color: #2E7D32;
+            line-height: 1.6;
+        }
+        .knowledge-card h3 { margin: 0 0 5px 0; font-size: 1.1em; color: #1B5E20; }
+
+        /* --- 按鈕 --- */
+        .btn-primary {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.3em;
+            border-radius: 50px;
+            box-shadow: 0 4px #2e7d32;
+            cursor: pointer;
+            margin-top: 15px;
+            font-weight: bold;
+            min-width: 200px;
+        }
+        .btn-primary:active {
+            box-shadow: 0 2px #2e7d32;
+            transform: translateY(2px);
+        }
+
+        .btn-secondary {
+            background-color: #2196F3;
+            box-shadow: 0 4px #1976D2;
+        }
+        .btn-secondary:active {
+            box-shadow: 0 2px #1976D2;
+        }
+
+        .btn-danger {
+            background-color: #FF9800;
+            box-shadow: 0 4px #F57C00;
+        }
+        .btn-danger:active {
+            box-shadow: 0 2px #F57C00;
+        }
+
+        #toast {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 30px;
+            font-size: 1.2em;
+            z-index: 50;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-align: center;
+            width: 80%;
+        }
+        #toast.show { opacity: 1; }
+
+        .daily-target-text {
+            font-size: 1.5em;
+            color: #333;
+            margin: 20px 0;
+        }
+        .big-number {
+            font-size: 2em;
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        
+        .hint-text {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+        }
+
     </style>
 </head>
-<body class="bg-slate-900 text-white font-sans overflow-hidden">
-    <div id="root" class="h-full"></div>
+<body>
 
-    <script type="text/babel">
-        const { useState, useEffect, useCallback, useRef } = React;
+    <div id="game-wrapper">
+        <div id="top-bar">
+            <img src="logo1.png" alt="Game Logo" class="ingame-logo" onerror="this.style.opacity='0.3'; this.alt='Logo1 Here'">
+            <button id="pauseBtn" class="hidden" onclick="pauseGame()">⏸</button>
+        </div>
 
-        // --- 圖標組件 (Inline SVG) ---
-        const IconWrapper = ({ children, size = 24, className = "" }) => (
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width={size} 
-            height={size} 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            className={className}
-          >
-            {children}
-          </svg>
-        );
+        <div id="hud-container">
+            <div>
+                <span class="level-badge" id="levelDisplay">Day 1</span>
+                <span id="timerDisplay" class="timer-badge">60s</span>
+            </div>
+            <div>
+                <span>🎯目標: <span id="targetScore" style="color:#d32f2f">3</span></span>
+                <span>🍎已吃: <span id="currentScore" style="color:#2e7d32">0</span></span>
+            </div>
+        </div>
 
-        const Play = (props) => <IconWrapper {...props}><polygon points="5 3 19 12 5 21 5 3" /></IconWrapper>;
-        const RotateCcw = (props) => <IconWrapper {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></IconWrapper>;
-        const ArrowLeft = (props) => <IconWrapper {...props}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></IconWrapper>;
-        const ArrowRight = (props) => <IconWrapper {...props}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></IconWrapper>;
-        const ArrowDown = (props) => <IconWrapper {...props}><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></IconWrapper>;
-        const Type = (props) => <IconWrapper {...props}><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></IconWrapper>;
-        const Sparkles = (props) => <IconWrapper {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M9 5h4" /><path d="M19 17v4" /><path d="M15 19h4" /></IconWrapper>;
-        const Lock = (props) => <IconWrapper {...props}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></IconWrapper>;
-        const BookOpen = (props) => <IconWrapper {...props}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></IconWrapper>;
-        const Target = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></IconWrapper>;
-        const X = (props) => <IconWrapper {...props}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></IconWrapper>;
-        const ChevronRight = (props) => <IconWrapper {...props}><polyline points="9 18 15 12 9 6" /></IconWrapper>;
-        const Volume2 = (props) => <IconWrapper {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></IconWrapper>;
-        const VolumeX = (props) => <IconWrapper {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></IconWrapper>;
+        <div id="toast">提示訊息</div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
 
-        // --- 遊戲資料庫 ---
-        const WORD_PAIRS_DATA = [
-          ['help', 'er', 'helper', 1, '助手', 'A person who helps'],
-          ['play', 'er', 'player', 1, '玩家', 'A person taking part in a game'],
-          ['teach', 'er', 'teacher', 1, '教師', 'A person who teaches'],
-          ['un', 'happy', 'unhappy', 1, '不快樂的', 'Not happy'],
-          ['help', 'less', 'helpless', 2, '無助的', 'Unable to help oneself'],
-          ['kind', 'ness', 'kindness', 2, '仁慈', 'The quality of being friendly'],
-          ['dis', 'like', 'dislike', 3, '不喜歡', 'Feel distaste for'],
-          ['mis', 'take', 'mistake', 3, '錯誤', 'An action or judgment that is wrong'],
-          ['pre', 'view', 'preview', 4, '預覽', 'An inspection before it is available'],
-          ['re', 'view', 'review', 4, '複習', 'A formal assessment'],
-          ['im', 'possible', 'impossible', 5, '不可能的', 'Not able to occur'],
-          ['in', 'active', 'inactive', 5, '不活躍的', 'Not engaging in physical activity'],
-          ['slow', 'ly', 'slowly', 6, '緩慢地', 'At a slow speed'],
-          ['quick', 'ly', 'quickly', 6, '快速地', 'At a fast speed'],
-          ['home', 'work', 'homework', 7, '家庭作業', 'Schoolwork done at home'],
-          ['foot', 'ball', 'football', 7, '足球', 'A game played with a ball'],
-          ['sun', 'flower', 'sunflower', 8, '向日葵', 'A tall plant with yellow flowers'],
-          ['friend', 'ship', 'friendship', 8, '友誼', 'The emotions or conduct of friends'],
-          ['inter', 'view', 'interview', 9, '面試', 'A meeting of people face to face'],
-          ['super', 'man', 'superman', 9, '超人', 'A man with superhuman powers'],
-          ['use', 'ful', 'useful', 10, '有用的', 'Able to be used for a practical purpose'],
-          ['use', 'less', 'useless', 10, '無用的', 'Not fulfilling an intended purpose'],
-          ['move', 'ment', 'movement', 6, '移動', 'An act of changing physical location'],
-          ['state', 'ment', 'statement', 6, '聲明', 'A definite or clear expression'],
-          ['enjoy', 'able', 'enjoyable', 6, '愉快的', 'Giving delight or pleasure'],
-          ['break', 'able', 'breakable', 6, '易碎的', 'Capable of being broken'],
-          ['care', 'ful', 'careful', 7, '小心的', 'Making sure of avoiding potential danger'],
-          ['hope', 'ful', 'hopeful', 7, '充滿希望的', 'Feeling or inspiring optimism'],
-          ['color', 'less', 'colorless', 7, '無色的', 'Without color'],
-          ['home', 'less', 'homeless', 7, '無家可歸的', 'Without a home'],
-          ['mid', 'night', 'midnight', 8, '午夜', 'Twelve o\'clock at night'],
-          ['mid', 'day', 'midday', 8, '正午', 'The middle of the day'],
-          ['over', 'cook', 'overcook', 8, '煮過頭', 'Cook too much'],
-          ['over', 'heat', 'overheat', 8, '過熱', 'Make or become too hot'],
-          ['inter', 'net', 'internet', 9, '網際網路', 'A global computer network'],
-          ['ex', 'port', 'export', 9, '出口', 'Send goods to another country'],
-          ['im', 'port', 'import', 9, '進口', 'Bring goods into a country'],
-          ['trans', 'form', 'transform', 10, '改變', 'Make a thorough or dramatic change'],
-          ['trans', 'port', 'transport', 10, '運輸', 'Take or carry from one place to another'],
-          ['sub', 'way', 'subway', 10, '地鐵', 'An underground electric railroad'],
-          ['sub', 'marine', 'submarine', 10, '潛水艇', 'A warship with a streamlined hull designed to operate completely submerged']
+        <div id="controls-area">
+            <div class="spacer"></div>
+            <div class="d-pad-btn" id="btn-up">⬆️</div>
+            <div class="spacer"></div>
+            
+            <div class="d-pad-btn" id="btn-left">⬅️</div>
+            <div class="d-pad-btn" id="btn-down">⬇️</div>
+            <div class="d-pad-btn" id="btn-right">➡️</div>
+        </div>
+    </div>
+
+    <!-- 1. 開始畫面 (首頁) -->
+    <div id="startScreen" class="overlay">
+        <img src="logo.png" alt="Studio Logo" class="start-logo" onerror="this.style.border='2px dashed #ccc'; this.alt='Logo Here'">
+        
+        <h2 style="color: #333; margin: 5px 0;">Math Snake Game</h2>
+        
+        <div class="knowledge-card">
+            <h3>🍎 點樣數蘋果？</h3>
+            <p>
+                1. 食了個蘋果，個心就數<strong>「1」</strong><br>
+                2. 食多個，就數<strong>「2」</strong>...<br>
+                3. 數到目標數目，就<strong>即刻停</strong>！<br>
+                (要數得好準先得架！💪)
+            </p>
+        </div>
+
+        <div class="objective-card">
+            <strong>📋 遊戲規則：</strong>
+            <ul style="padding-left: 20px; margin: 5px 0; color: #444;">
+                <li>看清每日 🎯 <strong>目標數量</strong></li>
+                <li>吃夠就立刻回家 🏠</li>
+                <li><strong>Day 3 起小心炸彈 💣</strong></li>
+            </ul>
+        </div>
+        
+        <!-- 使用 MusicManager 啟動音效 -->
+        <button class="btn-primary" onclick="MusicManager.init(); showTutorialGoal()">▶ 看示範教學</button>
+        <p class="hint-text">💡 提示：如果沒有聲音，請檢查手機是否開啟了靜音模式 (🔕)</p>
+    </div>
+
+    <!-- 1.5 示範目標彈窗 -->
+    <div id="tutorialGoalScreen" class="overlay hidden">
+        <h2 style="color: #4CAF50">👀 示範時間</h2>
+        
+        <div class="daily-target-text">
+            先看 AI 示範：<br>
+            吃 <span class="big-number" style="color:#4CAF50">2</span> 個蘋果<br>
+            然後回家 🏠
+        </div>
+
+        <p style="color: #666">準備好了嗎？</p>
+        
+        <button class="btn-primary" onclick="MusicManager.init(); runTutorial()">▶ 開始播放</button>
+    </div>
+
+    <!-- 2. 每日目標彈窗 -->
+    <div id="dailyGoalScreen" class="overlay hidden">
+        <h2 style="color: #2196F3">📅 <span id="dailyTitle">Day 1</span></h2>
+        
+        <div class="daily-target-text">
+            今日小蛇要吃<br>
+            <span class="big-number" id="dailyTargetNum">3</span><br>
+            個蘋果 🍎
+        </div>
+
+        <p style="color: #666">準備好了嗎？</p>
+        
+        <button class="btn-primary" onclick="MusicManager.init(); startDayAction()">🚀 出發！</button>
+    </div>
+
+    <!-- 3. 結束/過關畫面 -->
+    <div id="endScreen" class="overlay hidden">
+        <h2 id="endTitle">遊戲結束</h2>
+        <p id="endMessage" style="font-size: 1.2em; margin: 15px 0; font-weight: bold;"></p>
+        
+        <div id="btnGroupSuccess" class="hidden">
+            <button class="btn-primary" onclick="MusicManager.init(); nextDay()">進入下一天 ➡</button>
+        </div>
+        
+        <div id="btnGroupFail" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
+            <button class="btn-primary btn-danger" onclick="MusicManager.init(); retryDay()">💪 再接再厲</button>
+            <button class="btn-primary btn-secondary" onclick="goHome()">🏠 回到首頁</button>
+        </div>
+        
+        <div id="btnGroupWin" class="hidden">
+            <button class="btn-primary" onclick="goHome()">🏆 完美通關 (回首頁)</button>
+        </div>
+    </div>
+
+    <!-- 4. 暫停畫面 -->
+    <div id="pauseScreen" class="overlay hidden">
+        <h2 style="color: #2c3e50; font-size: 2em;">⏸ 暫停</h2>
+        <p style="font-size: 1.2em; color: #666; margin-bottom: 30px;">休息一陣，飲啖水先...</p>
+        
+        <div style="display:flex; flex-direction:column; gap:15px;">
+            <button class="btn-primary" onclick="resumeGame()">▶ 繼續遊戲</button>
+            <button class="btn-primary btn-secondary" onclick="goHome()">🏠 回到首頁</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲設定 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 20; 
+        const tileCount = 20; 
+
+        // --- 關卡設定 ---
+        const levels = [
+            { target: 3, speed: 250, bombs: 0, time: 60 },
+            { target: 5, speed: 230, bombs: 0, time: 50 },
+            { target: 7, speed: 210, bombs: 1, time: 70 },
+            { target: 9, speed: 190, bombs: 3, time: 90 },
+            { target: 10, speed: 180, bombs: 5, time: 110 }
         ];
 
-        const GRID_W = 10;
-        const GRID_H = 14; 
+        // --- 變數 ---
+        let currentDayIndex = 0;
+        let score = 0;
+        let snake = [];
+        let apple = {x: 15, y: 15};
+        let home = {x: -1, y: -1};
+        let bombs = [];
+        let velocity = {x: 0, y: 0};
+        let gameInterval;
+        let timerInterval;
+        let timeLeft = 0;
+        let isDemoMode = false;
+        let isTutorialMode = false; 
+        let isPaused = false;
+        let synth = window.speechSynthesis; 
 
-        const COLORS = {
-          prefix: 'bg-blue-600 border-blue-400 text-white shadow-md', 
-          root: 'bg-emerald-600 border-emerald-400 text-white shadow-md',   
-          suffix: 'bg-orange-500 border-orange-400 text-white shadow-md', 
-          ghost: 'bg-slate-800 border-2 border-slate-700 border-dashed text-slate-600', 
-          word_locked: 'bg-slate-700 border-slate-600 text-slate-400' 
-        };
+        // --- 音效管理器 (MusicManager Singleton) ---
+        const MusicManager = {
+            ctx: null,
+            masterGain: null,
+            bgmTimer: null,
+            isPlaying: false,
 
-        const getPartType = (text) => {
-          const prefixes = ['un', 're', 'dis', 'mis', 'pre', 'im', 'in', 'non', 'over', 'super', 'auto', 'bio', 'mid', 'inter', 'ex', 'trans', 'sub'];
-          const suffixes = ['less', 'ful', 'ness', 'ly', 'ion', 'er', 'ist', 'ship', 'ment', 'able'];
-          if (prefixes.includes(text)) return 'prefix'; 
-          if (suffixes.includes(text)) return 'suffix'; 
-          return 'root'; 
-        };
-
-        const getPartColor = (text) => {
-          const type = getPartType(text);
-          if (type === 'prefix') return COLORS.prefix;
-          if (type === 'suffix') return COLORS.suffix;
-          return COLORS.root; 
-        };
-
-        // BGM URL (Tetris Theme - Korobeiniki)
-        const BGM_URL = "https://ia800504.us.archive.org/33/items/TetrisThemeMusic/Tetris.mp3";
-
-        function WordTetris() {
-          const [grid, setGrid] = useState(Array(GRID_H).fill(null).map(() => Array(GRID_W).fill(null)));
-          const [activePiece, setActivePiece] = useState(null); 
-          const [score, setScore] = useState(0);
-          const [gameState, setGameState] = useState('HOME'); 
-          
-          const [showCollection, setShowCollection] = useState(false);
-          const [clearedWords, setClearedWords] = useState([]); 
-          const [combo, setCombo] = useState(0);
-          
-          const [discoveredWords, setDiscoveredWords] = useState(new Set());
-          const [definitionModal, setDefinitionModal] = useState(null);
-          // Removed bonusNotification state since unlock bonus is cancelled
-          const [topMessage, setTopMessage] = useState(null); 
-          
-          const [isMuted, setIsMuted] = useState(false);
-          const audioRef = useRef(null);
-
-          const gameLoopRef = useRef();
-          const speedRef = useRef(900); 
-          const touchStartRef = useRef(null);
-
-          // 無盡模式狀態
-          const [shuffledPairs, setShuffledPairs] = useState([]); 
-          const [unlockedCount, setUnlockedCount] = useState(2); 
-          const [nextUnlockScore, setNextUnlockScore] = useState(500);
-
-          const speakWord = (word) => {
-            if ('speechSynthesis' in window) {
-              const utterance = new SpeechSynthesisUtterance(word);
-              utterance.lang = 'en-US';
-              utterance.rate = 0.9;
-              window.speechSynthesis.speak(utterance);
-            }
-          };
-
-          useEffect(() => {
-            if (audioRef.current) {
-              audioRef.current.volume = 0.3; 
-              if (gameState === 'PLAYING' && !isMuted) {
-                const playPromise = audioRef.current.play();
-                if (playPromise !== undefined) {
-                  playPromise.catch(error => console.log("Audio play blocked"));
-                }
-              } else {
-                audioRef.current.pause();
-              }
-            }
-          }, [gameState, isMuted]);
-
-          const getAvailableParts = useCallback(() => {
-            if (shuffledPairs.length === 0) return [];
-            const activePairs = shuffledPairs.slice(0, unlockedCount);
-            return Array.from(new Set(activePairs.flatMap(p => [p[0], p[1]])));
-          }, [shuffledPairs, unlockedCount]);
-
-          const spawnPiece = useCallback(() => {
-            if (shuffledPairs.length === 0) return;
-
-            const availableParts = getAvailableParts();
-            
-            const partsByType = { prefix: [], root: [], suffix: [] };
-            availableParts.forEach(p => {
-              const type = getPartType(p);
-              if (partsByType[type]) partsByType[type].push(p);
-            });
-
-            const availableTypes = Object.keys(partsByType).filter(k => partsByType[k].length > 0);
-            const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-            const selectedPart = partsByType[selectedType][Math.floor(Math.random() * partsByType[selectedType].length)];
-            const partColor = getPartColor(selectedPart);
-
-            const W = { type: 'word', text: selectedPart, color: partColor };
-            const G = { type: 'ghost', text: '', color: COLORS.ghost }; 
-
-            let hasRight = false;
-            let hasDown = false;
-            let hasLeft = false;
-            let hasUp = false;
-
-            const activePairs = shuffledPairs.slice(0, unlockedCount);
-
-            activePairs.forEach(pair => {
-              if (pair[0] === selectedPart) {
-                hasRight = true;
-                hasDown = true;
-              }
-              if (pair[1] === selectedPart) {
-                hasLeft = true;
-                hasUp = true;
-              }
-            });
-
-            const blocks = [{ x: 0, y: 0, cell: W }];
-            if (hasRight) blocks.push({ x: 1, y: 0, cell: G });
-            if (hasDown)  blocks.push({ x: 0, y: 1, cell: G });
-            if (hasLeft)  blocks.push({ x: -1, y: 0, cell: G });
-            if (hasUp)    blocks.push({ x: 0, y: -1, cell: G });
-
-            const minX = Math.min(...blocks.map(b => b.x));
-            const maxX = Math.max(...blocks.map(b => b.x));
-            const minY = Math.min(...blocks.map(b => b.y));
-            const maxY = Math.max(...blocks.map(b => b.y));
-
-            const width = maxX - minX + 1;
-            const height = maxY - minY + 1;
-
-            const shape = Array(height).fill(null).map(() => Array(width).fill(null));
-
-            blocks.forEach(b => {
-              const cellWithId = { ...b.cell, id: Date.now() + Math.random() };
-              shape[b.y - minY][b.x - minX] = cellWithId;
-            });
-
-            const newPiece = {
-              x: Math.floor((GRID_W - shape[0].length) / 2),
-              y: 0,
-              shape: shape
-            };
-
-            if (checkCollision(newPiece.x, newPiece.y, newPiece.shape, grid, true)) {
-              setGameState('GAMEOVER');
-            } else {
-              setActivePiece(newPiece);
-            }
-          }, [grid, shuffledPairs, unlockedCount, getAvailableParts]);
-
-          // 修改：碰撞檢測邏輯 (虛擬塊不應被牆壁擋著)
-          const checkCollision = (pieceX, pieceY, shape, currentGrid, isSpawnCheck = false) => {
-            for (let y = 0; y < shape.length; y++) {
-              for (let x = 0; x < shape[y].length; x++) {
-                if (shape[y][x]) {
-                  const targetX = pieceX + x;
-                  const targetY = pieceY + y;
-                  const pieceCellType = shape[y][x].type;
-
-                  // 1. 邊界檢查
-                  if (targetX < 0 || targetX >= GRID_W || targetY >= GRID_H) {
-                    // 實體塊 (Word) 必須在邊界內
-                    if (pieceCellType === 'word') return true;
-                    // 虛擬塊 (Ghost) 可以穿牆/出界 -> 忽略
-                    if (pieceCellType === 'ghost') continue;
-                  }
-
-                  // 2. 網格佔用檢查 (確保在網格範圍內才檢查)
-                  if (targetY >= 0 && targetX >= 0 && targetX < GRID_W) {
-                    const gridCell = currentGrid[targetY][targetX];
+            // 初始化：必須在用戶點擊事件中調用
+            init: function() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
                     
-                    if (gridCell === null) continue;
-
-                    // Ghost 不受任何阻擋 (忽略網格上的任何東西)
-                    if (pieceCellType === 'ghost') continue; 
-
-                    // Word 可以覆蓋網格上的 Ghost，但不能穿過 Word
-                    if (pieceCellType === 'word') {
-                      if (gridCell.type === 'ghost') continue;
-                      if (gridCell.type === 'word') return true;
-                    }
-                  }
+                    // 建立主音量
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.gain.value = 0.15; // 總音量
+                    this.masterGain.connect(this.ctx.destination);
                 }
-              }
-            }
-            return false;
-          };
 
-          const lockPiece = async () => {
-            if (!activePiece) return;
-            const newGrid = grid.map(row => [...row]);
-            
-            activePiece.shape.forEach((row, dy) => {
-              row.forEach((cell, dx) => {
-                if (cell) {
-                  const targetY = activePiece.y + dy;
-                  const targetX = activePiece.x + dx;
-                  
-                  if (targetY >= 0 && targetY < GRID_H && targetX >= 0 && targetX < GRID_W) {
-                    const gridCell = newGrid[targetY][targetX];
-                    
-                    if (cell.type === 'word') {
-                       newGrid[targetY][targetX] = cell; 
-                    } else if (cell.type === 'ghost') {
-                       if (!gridCell || gridCell.type === 'ghost') {
-                         newGrid[targetY][targetX] = cell;
-                       }
-                    }
-                  }
+                // 嘗試恢復 (iOS Safari 關鍵)
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
                 }
-              });
-            });
 
-            const settledGrid = applyGravityImmediate(newGrid);
-            setGrid(settledGrid);
-            setActivePiece(null);
+                // 播放極短的靜音來解鎖
+                const buffer = this.ctx.createBuffer(1, 1, 22050);
+                const source = this.ctx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(this.ctx.destination);
+                source.start(0);
+            },
 
-            const matches = findMatches(settledGrid);
-            if (matches.length > 0) {
-              await handleMatches(settledGrid, matches);
-            } else {
-              setCombo(0); 
-              spawnPiece();
-            }
-          };
+            // 播放單個音符
+            playTone: function(freq, duration) {
+                if (!this.ctx || this.ctx.state !== 'running') return;
 
-          const applyGravityImmediate = (currentGrid) => {
-            const newGrid = Array(GRID_H).fill(null).map(() => Array(GRID_W).fill(null));
-            for (let x = 0; x < GRID_W; x++) {
-              const words = [];
-              const ghosts = [];
-              for (let y = GRID_H - 1; y >= 0; y--) {
-                const cell = currentGrid[y][x];
-                if (cell) {
-                  if (cell.type === 'word') words.push(cell);
-                  else if (cell.type === 'ghost') ghosts.push(cell);
-                }
-              }
-              let writeY = GRID_H - 1;
-              for (const w of words) {
-                newGrid[writeY][x] = w;
-                writeY--;
-              }
-              for (const g of ghosts) {
-                if (writeY >= 0) {
-                  newGrid[writeY][x] = g;
-                  writeY--;
-                }
-              }
-            }
-            return newGrid;
-          };
-
-          const findMatches = (currentGrid) => {
-            const matches = [];
-            const usedIds = new Set(); 
-            for (let y = 0; y < GRID_H; y++) {
-              for (let x = 0; x < GRID_W; x++) {
-                const cell = currentGrid[y][x];
-                if (!cell || cell.type !== 'word') continue;
-
-                if (x + 1 < GRID_W) {
-                  const rightCell = currentGrid[y][x + 1];
-                  if (rightCell && rightCell.type === 'word') {
-                    const wordInfo = checkWordPair(cell.text, rightCell.text);
-                    if (wordInfo && !usedIds.has(cell.id) && !usedIds.has(rightCell.id)) {
-                      matches.push({ cells: [{x, y}, {x: x+1, y}], wordInfo });
-                      usedIds.add(cell.id); usedIds.add(rightCell.id);
-                    }
-                  }
-                }
-                if (y + 1 < GRID_H) {
-                  const downCell = currentGrid[y + 1][x];
-                  if (downCell && downCell.type === 'word') {
-                    const wordInfo = checkWordPair(cell.text, downCell.text);
-                    if (wordInfo && !usedIds.has(cell.id) && !usedIds.has(downCell.id)) {
-                      matches.push({ cells: [{x, y}, {x, y: y+1}], wordInfo });
-                      usedIds.add(cell.id); usedIds.add(downCell.id);
-                    }
-                  }
-                }
-              }
-            }
-            return matches;
-          };
-
-          const checkWordPair = (part1, part2) => {
-            const combined = part1 + part2;
-            const found = WORD_PAIRS_DATA.find(p => p[2] === combined);
-            if (found) {
-              return { full: found[2], meaning_zh: found[4], meaning_en: found[5] };
-            }
-            return null;
-          };
-
-          const handleMatches = async (currentGrid, matches) => {
-            let points = 0;
-            const newClearedWords = [];
-            let newDiscovery = null;
-
-            const cellsToClear = new Set();
-            const newlyFoundWords = []; 
-
-            matches.forEach(m => {
-              // 檢查是否為首度發現 (Discovery)
-              let isDiscovery = !discoveredWords.has(m.wordInfo.full) && !newlyFoundWords.includes(m.wordInfo.full);
-              
-              // 計分邏輯調整
-              let matchScore = 0;
-              let baseScore = 100 * (combo + 1);
-
-              if (isDiscovery) {
-                // 首度發現: 基礎分 + 200分 (Discovery Bonus)
-                matchScore = baseScore + 200;
-                newDiscovery = m.wordInfo;
-                newlyFoundWords.push(m.wordInfo.full);
-              } else {
-                // 舊詞: 維持 100 分
-                matchScore = baseScore;
-              }
-              
-              points += matchScore;
-              newClearedWords.push(m.wordInfo.full);
-
-              m.cells.forEach(pos => {
-                cellsToClear.add(`${pos.x},${pos.y}`);
-                const neighbors = [{x: pos.x + 1, y: pos.y}, {x: pos.x - 1, y: pos.y}, {x: pos.x, y: pos.y + 1}, {x: pos.x, y: pos.y - 1}];
-                neighbors.forEach(n => {
-                  if (n.x >= 0 && n.x < GRID_W && n.y >= 0 && n.y < GRID_H) {
-                    const cell = currentGrid[n.y][n.x];
-                    if (cell && cell.type === 'ghost') {
-                      cellsToClear.add(`${n.x},${n.y}`);
-                    }
-                  }
-                });
-              });
-            });
-            
-            if (newlyFoundWords.length > 0) {
-              setDiscoveredWords(prev => {
-                const next = new Set(prev);
-                newlyFoundWords.forEach(w => next.add(w));
-                return next;
-              });
-            }
-            
-            if (newDiscovery) {
-              setGameState('PAUSED');
-              setDefinitionModal(newDiscovery);
-              speakWord(newDiscovery.full);
-            }
-
-            let currentScore = score + points;
-            
-            // --- 解鎖新單字邏輯 (無盡模式) ---
-            if (currentScore >= nextUnlockScore && unlockedCount < shuffledPairs.length) {
-              const newWordPair = shuffledPairs[unlockedCount]; // 抓取即將解鎖的單字
-              setUnlockedCount(prev => prev + 1);
-              setNextUnlockScore(prev => prev + 500); 
-              
-              // 解鎖獎勵：取消 (bonusPoints = 0)
-              
-              // 永久更新頂部通知
-              setTopMessage(`新解鎖: ${newWordPair[2]}`); 
-
-              // 稍微加快速度
-              speedRef.current = Math.max(100, 900 - Math.floor((currentScore) / 1000) * 50);
-            }
-
-            setScore(currentScore);
-            setClearedWords(newClearedWords);
-            setCombo(prev => prev + 1);
-            
-            const nextGrid = currentGrid.map(row => [...row]);
-            cellsToClear.forEach(key => {
-              const [cx, cy] = key.split(',').map(Number);
-              nextGrid[cy][cx] = null;
-            });
-
-            setGrid(nextGrid);
-            
-            if (!newDiscovery) {
-              setTimeout(() => applyGravity(nextGrid), 300);
-            }
-          };
-
-          const applyGravity = (currentGrid) => {
-            const newGrid = applyGravityImmediate(currentGrid);
-            setGrid(newGrid);
-            
-            setTimeout(() => {
-              const newMatches = findMatches(newGrid);
-              if (newMatches.length > 0) {
-                handleMatches(newGrid, newMatches);
-              } else {
-                setClearedWords([]);
-                spawnPiece();
-              }
-            }, 400);
-          };
-
-          const move = useCallback((dx, dy) => {
-            if (gameState !== 'PLAYING' || !activePiece) return;
-            const nextX = activePiece.x + dx;
-            const nextY = activePiece.y + dy;
-            if (!checkCollision(nextX, nextY, activePiece.shape, grid)) {
-              setActivePiece({ ...activePiece, x: nextX, y: nextY });
-            } else if (dy > 0) {
-              lockPiece();
-            }
-          }, [gameState, activePiece, grid]);
-
-          const drop = () => {
-            if (gameState !== 'PLAYING' || !activePiece) return;
-            let tempY = activePiece.y;
-            while (!checkCollision(activePiece.x, tempY + 1, activePiece.shape, grid)) {
-              tempY++;
-            }
-            setActivePiece({ ...activePiece, y: tempY });
-          };
-
-          useEffect(() => {
-            if (gameState !== 'PLAYING') return;
-            gameLoopRef.current = setInterval(() => move(0, 1), speedRef.current);
-            return () => clearInterval(gameLoopRef.current);
-          }, [gameState, move]); 
-
-          useEffect(() => {
-            const handleKeyDown = (e) => {
-              if (gameState !== 'PLAYING') return;
-              if (e.key === 'ArrowLeft') move(-1, 0);
-              if (e.key === 'ArrowRight') move(1, 0);
-              if (e.key === 'ArrowDown') move(0, 1);
-              if (e.key === ' ') drop();
-            };
-            window.addEventListener('keydown', handleKeyDown);
-            return () => window.removeEventListener('keydown', handleKeyDown);
-          }, [gameState, move]);
-
-          const startGame = () => {
-            const shuffled = [...WORD_PAIRS_DATA].sort(() => Math.random() - 0.5);
-            setShuffledPairs(shuffled);
-            
-            // 初始狀態: 2個單字
-            const initialCount = 2;
-            setUnlockedCount(initialCount); 
-            setNextUnlockScore(500); 
-            speedRef.current = 900;
-            
-            // 設定初始的通知訊息
-            const startWords = shuffled.slice(0, initialCount).map(p => p[2]).join(', ');
-            setTopMessage(`初始單字: ${startWords}`);
-
-            setGrid(Array(GRID_H).fill(null).map(() => Array(GRID_W).fill(null)));
-            setScore(0);
-            setCombo(0);
-            setClearedWords([]);
-            setGameState('PLAYING');
-          };
-
-          // 觸發生成初始方塊
-          useEffect(() => {
-            if (gameState === 'PLAYING' && activePiece === null && shuffledPairs.length > 0) {
-                spawnPiece();
-            }
-          }, [gameState, shuffledPairs, activePiece, spawnPiece]);
-
-          const closeDefinitionModal = () => {
-            setDefinitionModal(null);
-            setGameState('PLAYING');
-            applyGravity(grid);
-          };
-
-          return (
-            <div className="fixed inset-0 bg-slate-900 text-white font-sans flex flex-col overflow-hidden touch-none select-none">
-              <audio ref={audioRef} src={BGM_URL} loop />
-
-              {/* 頂部資訊欄 */}
-              {gameState !== 'HOME' && (
-                <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 h-[60px] shrink-0 z-20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-600 overflow-hidden p-0.5 shrink-0">
-                        <img src="logo2.png" alt="Logo" className="w-full h-full object-contain" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-slate-400 font-bold">SCORE</span>
-                      <span className="text-xl font-mono leading-none">{score}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col items-center">
-                     <div className="text-xs font-bold text-yellow-500">WORDS UNLOCKED</div>
-                     <div className="text-xl font-mono leading-none flex items-center gap-1 text-white">
-                       <BookOpen size={16} /> {Math.min(unlockedCount, shuffledPairs.length)} / {shuffledPairs.length}
-                     </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button onClick={() => setIsMuted(!isMuted)} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all">
-                      {isMuted ? <VolumeX size={20} className="text-red-400"/> : <Volume2 size={20} className="text-green-400"/>}
-                    </button>
-                    <button onClick={() => { if (gameState === 'PLAYING') setGameState('PAUSED'); setShowCollection(true); }} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all">
-                      <BookOpen size={20} className="text-blue-300" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* 遊戲主區域 (Layout: Flex-1 to fill space between Header and Controls) */}
-              <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full max-w-md mx-auto relative">
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
                 
-                {/* 1. 上方版塊：通知 (Logo removed, persistent message) */}
-                {gameState === 'PLAYING' && (
-                  <div className="w-full flex justify-center py-2 px-4 shrink-0 z-10">
-                      <div className="bg-slate-800/80 border border-slate-600 rounded-full px-4 py-2 text-sm text-yellow-300 font-bold shadow-sm w-full text-center truncate flex items-center justify-center gap-2">
-                          <Sparkles className="animate-spin-slow w-4 h-4 shrink-0 text-yellow-400" />
-                          <span className="truncate">{topMessage || "準備開始..."}</span>
-                      </div>
-                  </div>
-                )}
+                osc.type = 'square'; // 8-bit 風格
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                
+                // 包絡 (Envelope) 避免爆音
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
 
-                {/* 2. 遊戲網格 (Flex-1 to maximize space, object-contain behavior) */}
-                <div 
-                  className="flex-1 w-full flex items-center justify-center relative px-2 pb-2"
-                  onTouchStart={e => {
-                      // Prevent default touch actions like scroll/zoom inside game area
-                      // e.preventDefault(); 
-                      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
-                  }}
-                  onTouchEnd={e => {
-                      if (!touchStartRef.current || gameState !== 'PLAYING') return;
-                      const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
-                      const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
-                      if (Math.abs(dx) > Math.abs(dy)) {
-                          if (Math.abs(dx) > 30) move(dx > 0 ? 1 : -1, 0);
-                      } else {
-                          if (dy > 30) move(0, 1);
-                          if (dy < -30) drop();
-                      }
-                  }}
-                >
-                  <div 
-                    className="grid gap-[1px] bg-slate-800/50 p-1 rounded border-2 border-slate-700 shadow-xl"
-                    style={{
-                      aspectRatio: `${GRID_W}/${GRID_H}`,
-                      height: '100%',
-                      width: 'auto',
-                      maxHeight: '100%',
-                      maxWidth: '100%',
-                      gridTemplateColumns: `repeat(${GRID_W}, minmax(0, 1fr))`
-                    }}
-                  >
-                    {grid.map((row, y) => (
-                      row.map((cell, x) => {
-                        let activeCell = null;
-                        if (activePiece) {
-                          const sy = y - activePiece.y;
-                          const sx = x - activePiece.x;
-                          if (sy >= 0 && sy < activePiece.shape.length && sx >= 0 && sx < activePiece.shape[0].length) {
-                            activeCell = activePiece.shape[sy][sx];
-                          }
-                        }
+                osc.connect(gain);
+                gain.connect(this.masterGain);
 
-                        const renderData = activeCell || cell;
-                        const isGhost = renderData && renderData.type === 'ghost';
-                        
-                        // Dynamic text size based on container/cell
-                        return (
-                          <div 
-                            key={`${x}-${y}`} 
-                            className={`
-                              w-full h-full rounded-[2px] flex items-center justify-center font-bold overflow-hidden transition-colors duration-75
-                              ${renderData ? renderData.color : 'bg-slate-800/30'}
-                              ${isGhost ? 'opacity-40' : ''}
-                              ${activeCell && !isGhost ? 'ring-1 ring-white/80 z-10' : ''}
-                              text-xs md:text-sm lg:text-base
-                            `}
-                          >
-                            {renderData && !isGhost ? renderData.text : ''}
-                          </div>
-                        );
-                      })
-                    ))}
-                  </div>
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
 
-                  {/* 消除特效 */}
-                  {clearedWords.length > 0 && !definitionModal && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-30 animate-fade-out pointer-events-none">
-                      <Sparkles className="text-yellow-400 w-16 h-16 mb-4 animate-bounce" />
-                      {clearedWords.map((word, i) => (
-                        <div key={i} className="text-4xl font-bold text-yellow-300 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] animate-pulse mb-2">
-                          {word.toUpperCase()}
-                        </div>
-                      ))}
-                      <div className="text-2xl text-green-400 mt-2 font-mono">+{100 * (combo)} pts</div>
-                    </div>
-                  )}
-                </div>
-              </div>
+            startBGM: function() {
+                this.init(); // 雙重保險
+                if (this.isPlaying) return;
+                this.isPlaying = true;
 
-              {/* 3. 下方控制區 (Fixed height at bottom) */}
-              <div className="w-full px-4 pb-4 pt-2 shrink-0 bg-slate-900 z-20">
-                  <div className="grid grid-cols-3 gap-2 h-10 w-full max-w-sm mx-auto">
-                    {/* 左 */}
-                    <button 
-                      className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
-                      onPointerDown={(e) => { e.preventDefault(); move(-1, 0); }}
-                    >
-                      <ArrowLeft size={18} className="text-slate-300" />
-                    </button>
-                    
-                    {/* 下 (加速) */}
-                    <button 
-                      className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
-                      onPointerDown={(e) => { e.preventDefault(); move(0, 1); }}
-                    >
-                      <ArrowDown size={18} className="text-slate-300" />
-                    </button>
+                const melody = [
+                    {f: 262, d: 0.2}, {f: 330, d: 0.2}, {f: 392, d: 0.2}, {f: 523, d: 0.4}, 
+                    {f: 392, d: 0.2}, {f: 330, d: 0.2}, {f: 262, d: 0.4}, 
+                    {f: 294, d: 0.2}, {f: 349, d: 0.2}, {f: 392, d: 0.2}, {f: 440, d: 0.4}, 
+                    {f: 392, d: 0.2}, {f: 349, d: 0.2}, {f: 294, d: 0.4} 
+                ];
 
-                    {/* 右 */}
-                    <button 
-                      className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
-                      onPointerDown={(e) => { e.preventDefault(); move(1, 0); }}
-                    >
-                      <ArrowRight size={18} className="text-slate-300" />
-                    </button>
-                </div>
-              </div>
+                let noteIndex = 0;
+                
+                // 清除舊的計時器
+                if (this.bgmTimer) clearInterval(this.bgmTimer);
 
-              {/* 首頁 */}
-              {gameState === 'HOME' && (
-                <div className="absolute inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-4 text-center space-y-4">
-                   <div className="w-24 h-24 bg-slate-800 rounded-2xl flex items-center justify-center border-4 border-slate-700 shadow-2xl rotate-3 overflow-hidden shrink-0">
-                      <img src="logo.png" alt="Logo" className="w-full h-full object-contain" />
-                   </div>
+                this.bgmTimer = setInterval(() => {
+                    if (!isPaused) {
+                        const note = melody[noteIndex % melody.length];
+                        this.playTone(note.f, note.d);
+                        noteIndex++;
+                    }
+                }, 250); // 每 250ms 播放一個音符
+            },
 
-                   <div className="shrink-0">
-                     <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-green-400 mb-1">
-                       Word Tetris
-                     </h1>
-                     <p className="text-slate-400 text-xs">Vocabulary Puzzle Game</p>
-                   </div>
+            stopBGM: function() {
+                this.isPlaying = false;
+                if (this.bgmTimer) clearInterval(this.bgmTimer);
+            }
+        };
 
-                   <div className="bg-slate-800/90 p-5 rounded-xl border border-slate-700 max-w-sm w-full backdrop-blur-sm overflow-y-auto custom-scrollbar flex-1 min-h-0 flex flex-col">
-                     
-                     {/* 詞綴解釋區塊 */}
-                     <div className="mb-4 bg-slate-900/60 p-3 rounded-lg text-left border border-slate-700 shrink-0">
-                        <h3 className="text-yellow-400 font-bold mb-2 text-sm flex items-center gap-2 border-b border-slate-700/50 pb-1">
-                          <BookOpen size={16}/> 什麼是詞綴 (Affixes)?
-                        </h3>
-                        <div className="text-xs text-slate-300 space-y-3">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">Prefix 前綴</span>
-                                <span className="text-slate-400">放在單字開頭</span>
-                            </div>
-                            <div className="pl-2 border-l-2 border-blue-500/30 text-slate-400">
-                              改變意思。例: <span className="text-blue-400 font-bold">un</span>(不) + happy = <span className="text-white">unhappy</span>
-                            </div>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="bg-orange-500 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">Suffix 後綴</span>
-                                <span className="text-slate-400">放在單字結尾</span>
-                            </div>
-                            <div className="pl-2 border-l-2 border-orange-500/30 text-slate-400">
-                              改變詞性。例: teach + <span className="text-orange-400 font-bold">er</span>(人) = <span className="text-white">teacher</span>
-                            </div>
-                          </div>
-                        </div>
-                     </div>
-
-                     <div className="border-t border-slate-700/50 my-2"></div>
-
-                     <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2 shrink-0">
-                       <Target className="text-red-400" size={18}/> 遊戲規則
-                     </h2>
-                     <ul className="text-left text-xs text-slate-300 space-y-2 mb-6 flex-1">
-                       <li className="flex gap-2"><span className="text-blue-400">●</span> <b>學習目標</b>: 熟悉英語詞綴組合 (Prefix/Suffix)。</li>
-                       <li className="flex gap-2"><span className="text-yellow-400">●</span> <b>如何操作</b>: 電腦用方向鍵/空白鍵，手機滑動控制。</li>
-                       <li className="flex gap-2"><span className="text-slate-500">●</span> <b>遊戲目標</b>: 盡量取得高分！每 500 分解鎖新詞。</li>
-                       <li className="flex gap-2"><span className="text-green-400">●</span> <b>查看提示</b>: 點擊右上角書本圖示 <BookOpen size={12} className="inline"/>。</li>
-                     </ul>
-                     
-                     <button onClick={startGame} className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-lg shadow-lg shadow-green-900/40 active:scale-95 transition-transform flex items-center justify-center gap-2 shrink-0">
-                       <Play fill="currentColor" size={20} /> 開始遊戲
-                     </button>
-                   </div>
-                </div>
-              )}
-
-              {/* 彈窗 */}
-              {definitionModal && (
-                <div className="absolute inset-0 z-50 bg-slate-900/95 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-200">
-                   <div className="bg-slate-800 p-8 rounded-2xl border border-slate-600 shadow-2xl max-w-sm w-full">
-                     <BookOpen className="w-16 h-16 text-blue-400 mb-4 mx-auto animate-bounce" />
-                     <div className="text-sm text-yellow-500 font-bold tracking-widest uppercase mb-2">New Discovery</div>
-                     <div className="text-4xl font-bold text-white mb-4">{definitionModal.full}</div>
-                     <div className="space-y-4 mb-8">
-                       <div className="bg-slate-900/50 p-3 rounded-lg">
-                         <div className="text-2xl text-green-400 font-bold">{definitionModal.meaning_zh}</div>
-                       </div>
-                       <div className="bg-slate-900/50 p-3 rounded-lg">
-                         <div className="text-sm text-slate-300 italic">"{definitionModal.meaning_en}"</div>
-                       </div>
-                     </div>
-                     <button onClick={closeDefinitionModal} className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold shadow-lg shadow-blue-900/30">
-                       Continue
-                     </button>
-                   </div>
-                </div>
-              )}
-
-              {/* 收藏庫 */}
-              {showCollection && (
-                <div className="absolute inset-0 z-50 bg-slate-900/95 flex flex-col p-4 animate-in slide-in-from-bottom duration-200">
-                  <div className="flex justify-between items-center mb-4 shrink-0">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2"><BookOpen /> Collection</h2>
-                    <button onClick={() => { setShowCollection(false); if(gameState === 'PAUSED') setGameState('PLAYING'); }} className="p-2 bg-slate-800 rounded-full"><X /></button>
-                  </div>
-                  <div className="text-sm text-slate-400 mb-2 px-2">Current Session Unlocks ({Math.min(unlockedCount, shuffledPairs.length)}/{shuffledPairs.length})</div>
-                  <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                    {/* 只顯示目前這局已解鎖 (在 shuffledPairs 範圍內) 的單字 */}
-                    {shuffledPairs.slice(0, unlockedCount).map(([p1, p2, full, reqLevel, zh, en], idx) => {
-                      const isDiscovered = discoveredWords.has(full);
-                      return (
-                        <div key={idx} className={`p-3 rounded-lg border ${isDiscovered ? 'bg-slate-800 border-green-500/50' : 'bg-slate-800/50 border-slate-700'}`}>
-                          <div className="flex justify-between items-center mb-1">
-                            <div className="flex items-center gap-1 font-mono text-sm">
-                              <span className="text-blue-400">{p1}</span>+<span className="text-orange-400">{p2}</span>
-                            </div>
-                            {isDiscovered ? (
-                               <span className="text-green-400 font-bold">{full}</span>
-                            ) : (
-                               <span className="text-slate-600 font-bold">???</span>
-                            )}
-                          </div>
-                          {isDiscovered && (
-                            <div className="text-xs text-slate-400 border-t border-slate-700/50 pt-2 mt-2">
-                               <span className="text-white mr-2">{zh}</span>
-                               <span className="italic text-slate-500">{en}</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {gameState === 'PAUSED' && (
-                    <div className="mt-4 pt-4 border-t border-slate-700 shrink-0">
-                       <button onClick={() => { setGameState('HOME'); setShowCollection(false); }} className="w-full py-3 bg-red-600/20 text-red-400 rounded-xl font-bold border border-red-600/50 mb-2">Quit Game</button>
-                       <button onClick={() => { setShowCollection(false); setGameState('PLAYING'); }} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold">Resume</button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 結束畫面 */}
-              {gameState === 'GAMEOVER' && (
-                <div className="absolute inset-0 z-50 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
-                   <h2 className="text-5xl font-bold text-slate-200 mb-2">GAME OVER</h2>
-                   <div className="text-lg text-yellow-400 mb-8 font-bold">
-                     {score > 2000 ? "太厲害了！" : score > 1000 ? "不錯喔！" : "繼續加油！"}
-                   </div>
-                   
-                   <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 w-full max-w-xs mb-8">
-                     <div className="text-slate-400 text-sm uppercase tracking-wider mb-1">Final Score</div>
-                     <div className="text-4xl font-mono text-white mb-4">{score}</div>
-                     <div className="flex justify-between text-sm border-t border-slate-700 pt-4">
-                       <div className="text-slate-400">Words Found</div>
-                       <div className="text-green-400">{discoveredWords.size}</div>
-                     </div>
-                   </div>
-
-                   <button onClick={startGame} className="px-8 py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-xl w-full max-w-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-900/40 active:scale-95 transition-transform">
-                     <RotateCcw /> Play Again
-                   </button>
-                   <button onClick={() => setGameState('HOME')} className="mt-4 text-slate-500 text-sm hover:text-white">Back to Home</button>
-                </div>
-              )}
-            </div>
-          );
+        // --- 輔助工具 ---
+        function toChineseNum(num) {
+            const map = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+            if (num <= 10) return map[num];
+            return num; 
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<WordTetris />);
+        // --- 流程控制 ---
+
+        function showTutorialGoal() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('tutorialGoalScreen').classList.remove('hidden');
+            speak("示範開始，請看清楚，吃兩個蘋果就回家。");
+        }
+
+        function runTutorial() {
+            MusicManager.startBGM(); 
+            document.getElementById('tutorialGoalScreen').classList.add('hidden');
+            
+            isDemoMode = true;
+            isTutorialMode = true;
+            
+            score = 0;
+            snake = [{x: 3, y: 5}, {x: 2, y: 5}, {x: 1, y: 5}]; 
+            velocity = {x: 1, y: 0};
+            apple = {x: 16, y: 5}; 
+            home = {x: 3, y: 15};  
+            bombs = [];
+            
+            document.getElementById('levelDisplay').innerText = "示範中";
+            document.getElementById('targetScore').innerText = "2"; 
+            document.getElementById('timerDisplay').innerText = "--";
+            updateScoreDisplay();
+
+            speak("出發！");
+
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, 200); 
+        }
+
+        function endTutorial() {
+            clearInterval(gameInterval);
+            isDemoMode = false;
+            isTutorialMode = false;
+            showDailyGoal();
+        }
+
+        function showDailyGoal() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('tutorialGoalScreen').classList.add('hidden');
+            
+            const levelConfig = levels[currentDayIndex];
+            const displayDay = currentDayIndex + 1;
+            
+            document.getElementById('dailyTitle').innerText = `Day ${displayDay}`;
+            document.getElementById('dailyTargetNum').innerText = levelConfig.target;
+            
+            speak(`第 ${toChineseNum(displayDay)} 日，今日目標，吃 ${levelConfig.target} 個蘋果。`);
+
+            document.getElementById('dailyGoalScreen').classList.remove('hidden');
+        }
+
+        function startDayAction() {
+            document.getElementById('dailyGoalScreen').classList.add('hidden');
+            document.getElementById('pauseBtn').classList.remove('hidden'); 
+            isDemoMode = false;
+            initLevel();
+            speak("計時開始！");
+        }
+
+        function initLevel() {
+            const levelConfig = levels[currentDayIndex];
+            snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
+            score = 0;
+            velocity = {x: 1, y: 0}; 
+            timeLeft = levelConfig.time;
+            bombs = [];
+            isPaused = false;
+
+            document.getElementById('levelDisplay').innerText = `Day ${currentDayIndex + 1}`;
+            document.getElementById('targetScore').innerText = levelConfig.target;
+            updateScoreDisplay();
+            updateTimerDisplay();
+
+            spawnHome(); 
+            spawnBombs(levelConfig.bombs);
+            spawnApple();
+
+            startIntervals(levelConfig.speed);
+        }
+
+        function startIntervals(speed) {
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(gameLoop, speed);
+
+            if (timerInterval) clearInterval(timerInterval);
+            if (!isDemoMode) {
+                timerInterval = setInterval(tickTimer, 1000);
+            }
+        }
+
+        function pauseGame() {
+            if (isDemoMode) return; 
+            isPaused = true;
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            document.getElementById('pauseScreen').classList.remove('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden'); 
+        }
+
+        function resumeGame() {
+            isPaused = false;
+            document.getElementById('pauseScreen').classList.add('hidden');
+            document.getElementById('pauseBtn').classList.remove('hidden');
+            
+            const levelConfig = levels[currentDayIndex];
+            startIntervals(levelConfig.speed);
+        }
+
+        function tickTimer() {
+            timeLeft--;
+            updateTimerDisplay();
+            
+            if (timeLeft <= 5) {
+                document.getElementById('timerDisplay').classList.add('urgent');
+            }
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                speak("時間到了！");
+                gameOver(false, "⏰ 時間到了！下次加油！");
+            }
+        }
+
+        function updateTimerDisplay() {
+            const el = document.getElementById('timerDisplay');
+            el.innerText = timeLeft + "s";
+            if (timeLeft > 5) el.classList.remove('urgent');
+        }
+
+        function gameLoop() {
+            if (isDemoMode) {
+                autoPilot();
+            }
+            update();
+            draw();
+        }
+
+        function update() {
+            const levelConfig = levels[currentDayIndex];
+            const head = {x: snake[0].x + velocity.x, y: snake[0].y + velocity.y};
+
+            if (head.x < 0) head.x = tileCount - 1;
+            if (head.x >= tileCount) head.x = 0;
+            if (head.y < 0) head.y = tileCount - 1;
+            if (head.y >= tileCount) head.y = 0;
+
+            snake.unshift(head);
+
+            if (head.x === apple.x && head.y === apple.y) {
+                score++;
+                updateScoreDisplay();
+                
+                if (isTutorialMode) {
+                    speakNumber(score);
+                    spawnApple(); 
+                } 
+                else if (score > levelConfig.target) {
+                    if (!isDemoMode) {
+                        speak("哎呀！吃太多了！");
+                        gameOver(false, "😮 哎呀！吃太多了，下次數清楚喔！");
+                    }
+                    return; 
+                } else {
+                    speakNumber(score); 
+                    spawnApple();
+                }
+            } else {
+                snake.pop(); 
+            }
+
+            if (!isDemoMode && !isTutorialMode) {
+                for (let b of bombs) {
+                    if (head.x === b.x && head.y === b.y) {
+                        speak("嘭！踩到炸彈了！");
+                        gameOver(false, "💣 踩到炸彈了！下次小心看路！");
+                        return;
+                    }
+                }
+            }
+
+            if (head.x === home.x && head.y === home.y) {
+                if (isTutorialMode) {
+                    if (score === 2) {
+                        endTutorial();
+                        return;
+                    } 
+                }
+
+                if (!isTutorialMode) {
+                    if (score === levelConfig.target) {
+                        if(isDemoMode) {
+                            initLevel();
+                        } else {
+                            levelComplete();
+                        }
+                    } else {
+                        if (!isDemoMode) {
+                            snake.shift(); 
+                            snake.reverse(); 
+                            showToast(`❌ 還不夠喔！再吃 ${levelConfig.target - score} 個！`);
+                            speak("還沒吃飽呢，再去吃吧！");
+                        }
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            // 背景 (白底)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 畫網格 (輔助數格)
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+            for(let i = 0; i < tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+
+            // 蛇
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = (i === 0) ? '#4CAF50' : '#81C784';
+                ctx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize - 2, gridSize - 2);
+                if (i === 0) { 
+                    ctx.fillStyle = 'white'; // 蛇眼白
+                    ctx.fillRect((snake[i].x * gridSize) + 4, (snake[i].y * gridSize) + 4, 4, 4);
+                    ctx.fillRect((snake[i].x * gridSize) + 12, (snake[i].y * gridSize) + 4, 4, 4);
+                    
+                    ctx.fillStyle = 'black'; // 蛇眼珠
+                    ctx.fillRect((snake[i].x * gridSize) + 5, (snake[i].y * gridSize) + 5, 2, 2);
+                    ctx.fillRect((snake[i].x * gridSize) + 13, (snake[i].y * gridSize) + 5, 2, 2);
+                }
+            }
+
+            drawApple(apple.x, apple.y);
+
+            // 炸彈
+            for (let b of bombs) {
+                ctx.font = '18px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#333'; 
+                ctx.fillText("💣", (b.x * gridSize) + 10, (b.y * gridSize) + 10);
+            }
+
+            // 家
+            ctx.fillStyle = '#2196F3';
+            ctx.fillRect(home.x * gridSize, home.y * gridSize, gridSize - 2, gridSize - 2);
+            ctx.font = '16px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText("🏠", (home.x * gridSize) + 10, (home.y * gridSize) + 10);
+        }
+
+        function drawApple(x, y) {
+            const centerX = (x * gridSize) + gridSize/2;
+            const centerY = (y * gridSize) + gridSize/2 + 2;
+            const radius = gridSize/2 - 2;
+            ctx.fillStyle = '#FF5252';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY - radius, 4, 2, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // --- 生成邏輯 ---
+        function spawnApple() {
+            let valid = false;
+            let tempX, tempY;
+            
+            if (isTutorialMode) {
+                if (score === 1) {
+                    apple.x = 16; apple.y = 15; 
+                    return;
+                }
+            }
+
+            while (!valid) {
+                tempX = Math.floor(Math.random() * tileCount);
+                tempY = Math.floor(Math.random() * tileCount);
+                if (!isOccupied(tempX, tempY, 'apple')) {
+                    apple.x = tempX; apple.y = tempY;
+                    valid = true;
+                }
+            }
+        }
+
+        function spawnHome() {
+            let valid = false;
+            while (!valid) {
+                home.x = Math.floor(Math.random() * tileCount);
+                home.y = Math.floor(Math.random() * tileCount);
+                let distOK = (Math.abs(home.x - 10) >= 5 || Math.abs(home.y - 10) >= 5);
+                if (distOK && !isOccupied(home.x, home.y, 'home')) valid = true;
+            }
+        }
+
+        function spawnBombs(count) {
+            bombs = [];
+            for(let i=0; i<count; i++) {
+                let bomb = {};
+                let valid = false;
+                while (!valid) {
+                    bomb.x = Math.floor(Math.random() * tileCount);
+                    bomb.y = Math.floor(Math.random() * tileCount);
+                    let distOK = (Math.abs(bomb.x - 10) >= 3 || Math.abs(bomb.y - 10) >= 3);
+                    if (distOK && !isOccupied(bomb.x, bomb.y)) valid = true;
+                }
+                bombs.push(bomb);
+            }
+        }
+
+        function isOccupied(x, y, ignoreType) {
+            for(let p of snake) if(p.x === x && p.y === y) return true;
+            if(ignoreType !== 'home' && home.x === x && home.y === y) return true;
+            for(let b of bombs) if(b.x === x && b.y === y) return true;
+            if(ignoreType !== 'apple' && apple.x === x && apple.y === y) return true;
+            return false;
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('currentScore').innerText = score;
+        }
+
+        function speakNumber(num) {
+            speak(num.toString());
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                synth.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-HK'; 
+                utterance.rate = 1.0; 
+                synth.speak(utterance);
+            }
+        }
+
+        // --- 遊戲狀態管理 ---
+        
+        function levelComplete() {
+            clearInterval(gameInterval); 
+            clearInterval(timerInterval);
+            speak("太好了！過關！");
+            
+            document.getElementById('endScreen').classList.remove('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden'); 
+            
+            hideAllEndBtnGroups();
+
+            if (currentDayIndex < levels.length - 1) {
+                document.getElementById('endTitle').innerText = `🎉 Day ${currentDayIndex + 1} 完成！`;
+                document.getElementById('endTitle').style.color = "#4CAF50";
+                document.getElementById('endMessage').innerText = "休息一下，準備迎接新的一天！";
+                document.getElementById('btnGroupSuccess').classList.remove('hidden');
+            } else {
+                document.getElementById('endTitle').innerText = "🏆 數數大師！";
+                document.getElementById('endTitle').style.color = "#FF9800";
+                document.getElementById('endMessage').innerText = "恭喜你！全部日數挑戰成功！";
+                document.getElementById('btnGroupWin').classList.remove('hidden');
+            }
+        }
+
+        function gameOver(win, msg) {
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            isDemoMode = true; 
+            
+            document.getElementById('endScreen').classList.remove('hidden');
+            document.getElementById('pauseBtn').classList.add('hidden'); 
+            document.getElementById('endTitle').innerText = "💪 再接再厲！";
+            document.getElementById('endTitle').style.color = "#FF9800";
+            document.getElementById('endMessage').innerText = msg;
+            
+            hideAllEndBtnGroups();
+            document.getElementById('btnGroupFail').classList.remove('hidden');
+        }
+
+        function hideAllEndBtnGroups() {
+            document.getElementById('btnGroupSuccess').classList.add('hidden');
+            document.getElementById('btnGroupFail').classList.add('hidden');
+            document.getElementById('btnGroupWin').classList.add('hidden');
+        }
+
+        function nextDay() {
+            currentDayIndex++;
+            showDailyGoal(); 
+        }
+
+        function retryDay() {
+            showDailyGoal();
+        }
+
+        function goHome() {
+            currentDayIndex = 0;
+            score = 0;
+            isDemoMode = false; 
+            isTutorialMode = false;
+            isPaused = false;
+            MusicManager.stopBGM(); 
+            
+            document.getElementById('endScreen').classList.add('hidden');
+            document.getElementById('dailyGoalScreen').classList.add('hidden');
+            document.getElementById('pauseScreen').classList.add('hidden'); 
+            document.getElementById('pauseBtn').classList.add('hidden'); 
+            document.getElementById('tutorialGoalScreen').classList.add('hidden'); 
+            
+            document.getElementById('startScreen').classList.remove('hidden');
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 2000);
+        }
+
+        // --- 控制 ---
+        function setDir(x, y) {
+            if (velocity.x === 0 && x !== 0) { velocity = {x: x, y: 0}; }
+            if (velocity.y === 0 && y !== 0) { velocity = {x: 0, y: y}; }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(isDemoMode && !isTutorialMode) return; 
+            if(isDemoMode && isTutorialMode) return;
+            if(isPaused) return; 
+            if (e.keyCode === 37) setDir(-1, 0);
+            if (e.keyCode === 38) setDir(0, -1);
+            if (e.keyCode === 39) setDir(1, 0);
+            if (e.keyCode === 40) setDir(0, 1);
+        });
+
+        const bindBtn = (id, x, y) => {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if(!isDemoMode && !isPaused) { setDir(x, y); btn.classList.add('active'); }
+            }, {passive: false});
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); btn.classList.remove('active'); });
+            btn.addEventListener('mousedown', () => { if(!isDemoMode && !isPaused) setDir(x, y); });
+        };
+
+        bindBtn('btn-up', 0, -1);
+        bindBtn('btn-down', 0, 1);
+        bindBtn('btn-left', -1, 0);
+        bindBtn('btn-right', 1, 0);
+
+        function autoPilot() {
+            const head = snake[0];
+            const levelConfig = levels[currentDayIndex];
+            
+            let target = apple;
+            
+            if (isTutorialMode) {
+                // 示範模式：吃夠 2 個就回家
+                target = (score >= 2) ? home : apple;
+            } else {
+                target = (score >= levelConfig.target) ? home : apple;
+            }
+
+            if (head.x < target.x) velocity = {x: 1, y: 0};
+            else if (head.x > target.x) velocity = {x: -1, y: 0};
+            else if (head.y < target.y) velocity = {x: 0, y: 1};
+            else if (head.y > target.y) velocity = {x: 0, y: -1};
+        }
+
+        // 初始化繪圖
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     </script>
 </body>
 </html>
