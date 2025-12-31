@@ -284,33 +284,39 @@
             const W = { type: 'word', text: selectedPart, color: partColor };
             const G = { type: 'ghost', text: '', color: COLORS.ghost }; 
 
-            let hasRight = false;
-            let hasDown = false;
-            let hasLeft = false;
-            let hasUp = false;
+            const type = getPartType(selectedPart);
+            let blocks = [];
 
-            const activePairs = shuffledPairs.slice(0, unlockedCount);
-
-            activePairs.forEach(pair => {
-              if (pair[0] === selectedPart) {
-                hasRight = true;
-                hasDown = true;
-              }
-              if (pair[1] === selectedPart) {
-                hasLeft = true;
-                hasUp = true;
-              }
-            });
-            
-            if (!hasRight && !hasDown && !hasLeft && !hasUp) hasRight = true;
-
-            const potentialShapes = [];
-            if (hasRight) potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: 1, y: 0, cell: G }]);
-            if (hasDown)  potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: 0, y: 1, cell: G }]);
-            if (hasLeft)  potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: -1, y: 0, cell: G }]);
-            if (hasUp)    potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: 0, y: -1, cell: G }]);
-            
-            const blocks = potentialShapes[Math.floor(Math.random() * potentialShapes.length)];
+            // --- 形狀邏輯修改 ---
+            if (type === 'prefix') {
+                // Prefix: Word at (0,0), Ghost at Right (1,0) and Bottom (0,1)
+                // Shape: 
+                // W G
+                // G 
+                blocks = [
+                    { x: 0, y: 0, cell: W },
+                    { x: 1, y: 0, cell: G },
+                    { x: 0, y: 1, cell: G }
+                ];
+            } else if (type === 'suffix') {
+                // Suffix: Word at (0,0), Ghost at Left (-1,0) and Top (0,-1)
+                // Shape:
+                //   G
+                // G W
+                blocks = [
+                    { x: 0, y: 0, cell: W },
+                    { x: -1, y: 0, cell: G },
+                    { x: 0, y: -1, cell: G }
+                ];
+            } else {
+                // Root: Random single direction
+                const r = Math.floor(Math.random() * 4);
+                blocks = [{ x: 0, y: 0, cell: W }];
+                if (r===0) blocks.push({ x: 1, y: 0, cell: G }); 
+                else if (r===1) blocks.push({ x: -1, y: 0, cell: G }); 
+                else if (r===2) blocks.push({ x: 0, y: 1, cell: G }); 
+                else blocks.push({ x: 0, y: -1, cell: G }); 
+            }
 
             const minX = Math.min(...blocks.map(b => b.x));
             const maxX = Math.max(...blocks.map(b => b.x));
@@ -341,7 +347,6 @@
             }
           }, [grid, shuffledPairs, unlockedCount, refillBag]);
 
-          // 修改：碰撞檢測邏輯 (虛擬塊不應被牆壁擋著)
           const checkCollision = (pieceX, pieceY, shape, currentGrid, isSpawnCheck = false) => {
             for (let y = 0; y < shape.length; y++) {
               for (let x = 0; x < shape[y].length; x++) {
@@ -350,13 +355,11 @@
                   const targetY = pieceY + y;
                   const pieceCellType = shape[y][x].type;
 
-                  // 1. 邊界檢查
                   if (targetX < 0 || targetX >= GRID_W || targetY >= GRID_H) {
                     if (pieceCellType === 'word') return true;
                     if (pieceCellType === 'ghost') continue;
                   }
 
-                  // 2. 網格佔用檢查
                   if (targetY >= 0 && targetX >= 0 && targetX < GRID_W) {
                     const gridCell = currentGrid[targetY][targetX];
                     if (gridCell === null) continue;
@@ -483,6 +486,7 @@
             let points = 0;
             const newClearedWords = [];
             let newDiscovery = null;
+            let timeBonus = 0;
 
             const cellsToClear = new Set();
             const newlyFoundWords = []; 
@@ -497,8 +501,10 @@
                 matchScore = baseScore + 200;
                 newDiscovery = m.wordInfo;
                 newlyFoundWords.push(m.wordInfo.full);
+                timeBonus += 15; // New Word: +15s
               } else {
                 matchScore = baseScore;
+                timeBonus += 5; // Old Word: +5s
               }
               
               points += matchScore;
@@ -558,15 +564,17 @@
               }
               
               speedRef.current = Math.max(100, 900 - (nextLvl * 50));
-            } else {
-              setTimeLeft(prev => prev + 10);
-              setLastAddedTime(10);
             }
 
             setScore(currentScore);
             setClearedWords(newClearedWords);
             setCombo(prev => prev + 1);
             
+            // Update Time
+            // if (levelUpTriggered) timeBonus += 60; // Level Up bonus causes no error now
+            setTimeLeft(prev => prev + timeBonus);
+            setLastAddedTime(timeBonus);
+
             const nextGrid = currentGrid.map(row => [...row]);
             cellsToClear.forEach(key => {
               const [cx, cy] = key.split(',').map(Number);
@@ -582,7 +590,8 @@
               if (levelUpTriggered) pendingLevelUpRef.current = true; 
             } else if (levelUpTriggered) {
               setGameState('LEVEL_UP'); 
-              setTimeLeft(prev => prev + 30);
+              // 升級時
+              setTimeLeft(prev => prev + 30); // Level Up bonus 
               setLastAddedTime(30);
             } else {
               setTimeout(() => applyGravity(nextGrid), 300);
@@ -688,7 +697,7 @@
             setUnlockedCount(1); 
             setLevel(1);
             setNextLevelScore(300); 
-            setTimeLeft(60);        
+            setTimeLeft(60); // 60s
             speedRef.current = 900;
             
             const startWords = shuffled.slice(0, 1).map(p => p[2]).join(', ');
@@ -715,6 +724,8 @@
             if (pendingLevelUpRef.current) {
                 pendingLevelUpRef.current = false;
                 setGameState('LEVEL_UP');
+                setTimeLeft(prev => prev + 30);
+                setLastAddedTime(30);
             } else {
                 setGameState('PLAYING');
                 applyGravity(grid);
@@ -735,29 +746,28 @@
               {/* 頂部資訊欄 */}
               {gameState !== 'HOME' && (
                 <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 h-[60px] shrink-0 z-20">
-                  {/* Left: Score & Target */}
-                  <div className="flex flex-col justify-center">
-                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Score / Target</div>
-                    <div className="text-lg font-mono leading-none text-white">
-                      {score} <span className="text-slate-500 text-sm">/ {nextLevelScore}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-900 rounded-lg border border-slate-600 overflow-hidden p-0.5 shrink-0">
+                        <img src="logo2.png" alt="Logo" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Score / Goal</div>
+                      <div className="text-lg font-mono leading-none text-white">
+                        {score} <span className="text-slate-500 text-sm">/ {nextLevelScore}</span>
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Center: Timer (Big & Distinct) */}
-                  <div className={`flex flex-col items-center justify-center px-4 py-1 rounded-lg border shadow-lg ${timeLeft < 10 ? 'bg-red-900/50 border-red-500/50 animate-pulse' : 'bg-slate-700/50 border-slate-600'}`}>
-                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                  <div className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg border shadow-lg ${timeLeft < 10 ? 'bg-red-900/50 border-red-500/50 animate-pulse' : 'bg-slate-700/50 border-slate-600'}`}>
+                     <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
                        <Clock size={10} /> TIME
                      </div>
-                     <div className={`text-2xl font-mono leading-none font-bold ${timeLeft < 10 ? 'text-red-400' : 'text-white'}`}>
-                       {timeLeft}<span className="text-sm ml-0.5">s</span>
+                     <div className={`text-xl font-mono leading-none font-bold ${timeLeft < 10 ? 'text-red-400' : 'text-white'}`}>
+                       {timeLeft}<span className="text-xs ml-0.5">s</span>
                      </div>
                   </div>
 
-                  {/* Right: Buttons */}
-                  <div className="flex gap-1.5">
-                    <button onClick={() => setIsMuted(!isMuted)} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all border border-slate-600">
-                      {isMuted ? <VolumeX size={16} className="text-red-400"/> : <Volume2 size={16} className="text-green-400"/>}
-                    </button>
+                  <div className="flex gap-2">
                     <button 
                       onClick={() => setGameState('PAUSED')} 
                       className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all border border-slate-600"
@@ -777,7 +787,7 @@
               {/* 遊戲主區域 */}
               <div className="flex-1 flex flex-col items-center justify-start min-h-0 w-full max-w-3xl mx-auto relative overflow-hidden">
                 
-                {/* 1. 通知欄 (Dedicated space, not floating) */}
+                {/* 1. 上方版塊：通知 */}
                 {gameState === 'PLAYING' && (
                   <div className="w-full py-1 px-4 shrink-0 flex justify-center items-center z-10 min-h-[32px]">
                       <div className="bg-slate-800/90 border border-slate-600 rounded-full px-4 py-1 text-xs text-yellow-300 font-bold shadow-sm w-auto max-w-full text-center truncate flex items-center justify-center gap-2">
@@ -787,7 +797,7 @@
                   </div>
                 )}
 
-                {/* 2. 遊戲網格容器 (Flex-1 to take ALL remaining space) */}
+                {/* 2. 遊戲網格 */}
                 <div 
                   className="flex-1 w-full flex items-center justify-center relative p-1"
                   onTouchStart={e => {
@@ -809,7 +819,7 @@
                     className="grid gap-[1px] bg-slate-800/50 p-1 rounded border-2 border-slate-700 shadow-xl"
                     style={{
                       aspectRatio: `${GRID_W}/${GRID_H}`,
-                      height: '100%', 
+                      height: '100%',
                       width: 'auto',
                       maxHeight: '100%',
                       maxWidth: '100%',
@@ -866,10 +876,9 @@
                 </div>
               </div>
 
-              {/* 3. 下方控制區 (Fixed height at bottom) */}
+              {/* 3. 下方控制區 */}
               <div className="w-full px-4 pb-4 pt-2 shrink-0 bg-slate-900 z-20">
                   <div className="grid grid-cols-3 gap-2 h-10 w-full max-w-sm mx-auto">
-                    {/* 左 */}
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
                       onMouseDown={(e) => { e.preventDefault(); move(-1, 0); }}
@@ -877,8 +886,6 @@
                     >
                       <ArrowLeft size={18} className="text-slate-300" />
                     </button>
-                    
-                    {/* 下 (加速) */}
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
                       onMouseDown={(e) => { e.preventDefault(); move(0, 1); }}
@@ -886,8 +893,6 @@
                     >
                       <ArrowDown size={18} className="text-slate-300" />
                     </button>
-
-                    {/* 右 */}
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
                       onMouseDown={(e) => { e.preventDefault(); move(1, 0); }}
@@ -908,6 +913,11 @@
                        Resume
                      </button>
                      
+                     <button onClick={() => setIsMuted(!isMuted)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-lg text-slate-200 border border-slate-600 flex items-center justify-center gap-2">
+                       {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                       {isMuted ? "Unmute Music" : "Mute Music"}
+                     </button>
+
                      <button onClick={() => setShowCollection(true)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-lg text-slate-200 border border-slate-600">
                        <BookOpen size={18} className="inline mr-2" /> Word Collection
                      </button>
@@ -960,6 +970,7 @@
 
                    <div className="bg-slate-800/90 p-5 rounded-xl border border-slate-700 max-w-sm w-full backdrop-blur-sm overflow-y-auto custom-scrollbar flex-1 min-h-0 flex flex-col">
                      
+                     {/* 詞綴解釋區塊 */}
                      <div className="mb-4 bg-slate-900/60 p-3 rounded-lg text-left border border-slate-700 shrink-0">
                         <h3 className="text-yellow-400 font-bold mb-2 text-sm flex items-center gap-2 border-b border-slate-700/50 pb-1">
                           <BookOpen size={16}/> 什麼是詞綴 (Affixes)?
@@ -1020,9 +1031,14 @@
                          <div className="text-sm text-slate-300 italic">"{definitionModal.meaning_en}"</div>
                        </div>
                      </div>
-                     <button onClick={closeDefinitionModal} className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold shadow-lg shadow-blue-900/30">
-                       Continue
-                     </button>
+                     <div className="flex flex-col gap-3">
+                         <button onClick={() => speakWord(definitionModal.full)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold flex items-center justify-center gap-2">
+                            <Volume2 size={20} /> Listen Pronunciation
+                         </button>
+                         <button onClick={closeDefinitionModal} className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold shadow-lg shadow-blue-900/30">
+                           Continue
+                         </button>
+                     </div>
                    </div>
                 </div>
               )}
