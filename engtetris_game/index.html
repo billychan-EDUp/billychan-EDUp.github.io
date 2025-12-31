@@ -284,39 +284,33 @@
             const W = { type: 'word', text: selectedPart, color: partColor };
             const G = { type: 'ghost', text: '', color: COLORS.ghost }; 
 
-            const type = getPartType(selectedPart);
-            let blocks = [];
+            let hasRight = false;
+            let hasDown = false;
+            let hasLeft = false;
+            let hasUp = false;
 
-            // --- 形狀邏輯修改 ---
-            if (type === 'prefix') {
-                // Prefix: Word at (0,0), Ghost at Right (1,0) and Bottom (0,1)
-                // Shape: 
-                // W G
-                // G 
-                blocks = [
-                    { x: 0, y: 0, cell: W },
-                    { x: 1, y: 0, cell: G },
-                    { x: 0, y: 1, cell: G }
-                ];
-            } else if (type === 'suffix') {
-                // Suffix: Word at (0,0), Ghost at Left (-1,0) and Top (0,-1)
-                // Shape:
-                //   G
-                // G W
-                blocks = [
-                    { x: 0, y: 0, cell: W },
-                    { x: -1, y: 0, cell: G },
-                    { x: 0, y: -1, cell: G }
-                ];
-            } else {
-                // Root: Random single direction
-                const r = Math.floor(Math.random() * 4);
-                blocks = [{ x: 0, y: 0, cell: W }];
-                if (r===0) blocks.push({ x: 1, y: 0, cell: G }); 
-                else if (r===1) blocks.push({ x: -1, y: 0, cell: G }); 
-                else if (r===2) blocks.push({ x: 0, y: 1, cell: G }); 
-                else blocks.push({ x: 0, y: -1, cell: G }); 
-            }
+            const activePairs = shuffledPairs.slice(0, unlockedCount);
+
+            activePairs.forEach(pair => {
+              if (pair[0] === selectedPart) {
+                hasRight = true;
+                hasDown = true;
+              }
+              if (pair[1] === selectedPart) {
+                hasLeft = true;
+                hasUp = true;
+              }
+            });
+            
+            if (!hasRight && !hasDown && !hasLeft && !hasUp) hasRight = true;
+
+            const potentialShapes = [];
+            if (hasRight) potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: 1, y: 0, cell: G }]);
+            if (hasDown)  potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: 0, y: 1, cell: G }]);
+            if (hasLeft)  potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: -1, y: 0, cell: G }]);
+            if (hasUp)    potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: 0, y: -1, cell: G }]);
+            
+            const blocks = potentialShapes[Math.floor(Math.random() * potentialShapes.length)];
 
             const minX = Math.min(...blocks.map(b => b.x));
             const maxX = Math.max(...blocks.map(b => b.x));
@@ -347,6 +341,7 @@
             }
           }, [grid, shuffledPairs, unlockedCount, refillBag]);
 
+          // 修改：碰撞檢測邏輯 (虛擬塊不應被牆壁擋著)
           const checkCollision = (pieceX, pieceY, shape, currentGrid, isSpawnCheck = false) => {
             for (let y = 0; y < shape.length; y++) {
               for (let x = 0; x < shape[y].length; x++) {
@@ -355,11 +350,13 @@
                   const targetY = pieceY + y;
                   const pieceCellType = shape[y][x].type;
 
+                  // 1. 邊界檢查
                   if (targetX < 0 || targetX >= GRID_W || targetY >= GRID_H) {
                     if (pieceCellType === 'word') return true;
                     if (pieceCellType === 'ghost') continue;
                   }
 
+                  // 2. 網格佔用檢查
                   if (targetY >= 0 && targetX >= 0 && targetX < GRID_W) {
                     const gridCell = currentGrid[targetY][targetX];
                     if (gridCell === null) continue;
@@ -564,6 +561,9 @@
               }
               
               speedRef.current = Math.max(100, 900 - (nextLvl * 50));
+            } else {
+              setTimeLeft(prev => prev + 10);
+              setLastAddedTime(10);
             }
 
             setScore(currentScore);
@@ -784,23 +784,25 @@
                 </div>
               )}
 
-              {/* 遊戲主區域 */}
-              <div className="flex-1 flex flex-col items-center justify-start min-h-0 w-full max-w-3xl mx-auto relative overflow-hidden">
+              {/* 遊戲主區域 (Layout: Flex-1 to fill space between Header and Controls) */}
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full max-w-md mx-auto relative">
                 
-                {/* 1. 上方版塊：通知 */}
+                {/* 1. 上方版塊：通知 (Logo removed, persistent message) */}
                 {gameState === 'PLAYING' && (
-                  <div className="w-full py-1 px-4 shrink-0 flex justify-center items-center z-10 min-h-[32px]">
-                      <div className="bg-slate-800/90 border border-slate-600 rounded-full px-4 py-1 text-xs text-yellow-300 font-bold shadow-sm w-auto max-w-full text-center truncate flex items-center justify-center gap-2">
-                          <Sparkles className="animate-spin-slow w-3 h-3 shrink-0 text-yellow-400" />
-                          <span className="truncate">{topMessage || `Level ${level}`}</span>
+                  <div className="w-full flex justify-center py-2 px-4 shrink-0 z-10 absolute top-0">
+                      <div className="bg-slate-800/80 border border-slate-600 rounded-full px-4 py-2 text-sm text-yellow-300 font-bold shadow-sm w-full text-center truncate flex items-center justify-center gap-2 backdrop-blur-sm">
+                          <Sparkles className="animate-spin-slow w-4 h-4 shrink-0 text-yellow-400" />
+                          <span className="truncate">{topMessage || "準備開始..."}</span>
                       </div>
                   </div>
                 )}
 
-                {/* 2. 遊戲網格 */}
+                {/* 2. 遊戲網格 (Flex-1 to maximize space, object-contain behavior) */}
                 <div 
-                  className="flex-1 w-full flex items-center justify-center relative p-1"
+                  className="flex-1 w-full flex items-center justify-center relative px-2 pb-2"
                   onTouchStart={e => {
+                      // Prevent default touch actions like scroll/zoom inside game area
+                      // e.preventDefault(); 
                       touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
                   }}
                   onTouchEnd={e => {
@@ -841,19 +843,19 @@
                         const renderData = activeCell || cell;
                         const isGhost = renderData && renderData.type === 'ghost';
                         
+                        // Dynamic text size based on container/cell
                         return (
                           <div 
                             key={`${x}-${y}`} 
                             className={`
-                              w-full h-full rounded-[1px] md:rounded-[2px] flex items-center justify-center font-bold overflow-hidden transition-colors duration-75
+                              w-full h-full rounded-[2px] flex items-center justify-center font-bold overflow-hidden transition-colors duration-75
                               ${renderData ? renderData.color : 'bg-slate-800/30'}
                               ${isGhost ? 'opacity-40' : ''}
                               ${activeCell && !isGhost ? 'ring-1 ring-white/80 z-10' : ''}
+                              text-xs md:text-sm lg:text-base
                             `}
                           >
-                             <span className="text-[10px] xs:text-xs sm:text-sm md:text-base select-none leading-none">
-                               {renderData && !isGhost ? renderData.text : ''}
-                             </span>
+                            {renderData && !isGhost ? renderData.text : ''}
                           </div>
                         );
                       })
@@ -861,7 +863,7 @@
                   </div>
 
                   {/* 消除特效 */}
-                  {clearedWords.length > 0 && !definitionModal && gameState !== 'LEVEL_UP' && (
+                  {clearedWords.length > 0 && !definitionModal && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-30 animate-fade-out pointer-events-none">
                       <Sparkles className="text-yellow-400 w-16 h-16 mb-4 animate-bounce" />
                       {clearedWords.map((word, i) => (
@@ -876,83 +878,34 @@
                 </div>
               </div>
 
-              {/* 3. 下方控制區 */}
+              {/* 3. 下方控制區 (Fixed height at bottom) */}
               <div className="w-full px-4 pb-4 pt-2 shrink-0 bg-slate-900 z-20">
                   <div className="grid grid-cols-3 gap-2 h-10 w-full max-w-sm mx-auto">
+                    {/* 左 */}
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
-                      onMouseDown={(e) => { e.preventDefault(); move(-1, 0); }}
-                      onTouchStart={(e) => { e.preventDefault(); move(-1, 0); }}
+                      onPointerDown={(e) => { e.preventDefault(); move(-1, 0); }}
                     >
                       <ArrowLeft size={18} className="text-slate-300" />
                     </button>
+                    
+                    {/* 下 (加速) */}
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
-                      onMouseDown={(e) => { e.preventDefault(); move(0, 1); }}
-                      onTouchStart={(e) => { e.preventDefault(); move(0, 1); }}
+                      onPointerDown={(e) => { e.preventDefault(); move(0, 1); }}
                     >
                       <ArrowDown size={18} className="text-slate-300" />
                     </button>
+
+                    {/* 右 */}
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
-                      onMouseDown={(e) => { e.preventDefault(); move(1, 0); }}
-                      onTouchStart={(e) => { e.preventDefault(); move(1, 0); }}
+                      onPointerDown={(e) => { e.preventDefault(); move(1, 0); }}
                     >
                       <ArrowRight size={18} className="text-slate-300" />
                     </button>
                 </div>
               </div>
-
-              {/* 暫停選單 */}
-              {gameState === 'PAUSED' && !definitionModal && (
-                <div className="absolute inset-0 z-50 bg-slate-900/95 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-200">
-                   <div className="bg-slate-800 p-8 rounded-2xl border border-slate-600 shadow-2xl max-w-sm w-full space-y-4">
-                     <h2 className="text-3xl font-bold text-white mb-2 tracking-wider">PAUSED</h2>
-                     
-                     <button onClick={() => setGameState('PLAYING')} className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-xl text-white shadow-lg">
-                       Resume
-                     </button>
-                     
-                     <button onClick={() => setIsMuted(!isMuted)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-lg text-slate-200 border border-slate-600 flex items-center justify-center gap-2">
-                       {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                       {isMuted ? "Unmute Music" : "Mute Music"}
-                     </button>
-
-                     <button onClick={() => setShowCollection(true)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-lg text-slate-200 border border-slate-600">
-                       <BookOpen size={18} className="inline mr-2" /> Word Collection
-                     </button>
-                     
-                     <button onClick={() => setGameState('HOME')} className="w-full py-3 bg-red-900/50 hover:bg-red-900/70 rounded-xl font-bold text-lg text-red-300 border border-red-800/50">
-                       Exit to Home
-                     </button>
-                   </div>
-                </div>
-              )}
-
-              {/* 升級畫面 */}
-              {gameState === 'LEVEL_UP' && (
-                <div className="absolute inset-0 z-50 bg-slate-900/95 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-300">
-                   <div className="bg-slate-800 p-8 rounded-2xl border-2 border-yellow-500 shadow-[0_0_50px_rgba(234,179,8,0.3)] max-w-sm w-full">
-                     <Trophy className="w-20 h-20 text-yellow-400 mb-6 mx-auto animate-bounce" />
-                     <h2 className="text-4xl font-black text-white mb-2 tracking-wider">LEVEL {level}</h2>
-                     <p className="text-slate-400 text-sm mb-6 uppercase tracking-widest">Completed!</p>
-                     
-                     {getNewUnlockedWord() ? (
-                        <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mb-8">
-                            <div className="text-xs text-green-400 font-bold mb-2 uppercase">New Word Unlocked</div>
-                            <div className="text-3xl font-bold text-white mb-1">{getNewUnlockedWord()[2]}</div>
-                            <div className="text-sm text-slate-300">{getNewUnlockedWord()[4]}</div>
-                        </div>
-                     ) : (
-                        <div className="mb-8 text-slate-300">Keep going!</div>
-                     )}
-
-                     <button onClick={continueLevel} className="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-bold text-xl shadow-lg shadow-orange-900/40 active:scale-95 transition-transform text-white">
-                       Start Level {level}
-                     </button>
-                   </div>
-                </div>
-              )}
 
               {/* 首頁 */}
               {gameState === 'HOME' && (
@@ -1004,8 +957,8 @@
                      </h2>
                      <ul className="text-left text-xs text-slate-300 space-y-2 mb-6 flex-1">
                        <li className="flex gap-2"><span className="text-blue-400">●</span> <b>學習目標</b>: 熟悉英語詞綴組合 (Prefix/Suffix)。</li>
-                       <li className="flex gap-2"><span className="text-yellow-400">●</span> <b>如何操作</b>: 電腦用方向鍵/空白鍵，手機滑動控制。</li>
-                       <li className="flex gap-2"><span className="text-slate-500">●</span> <b>遊戲目標</b>: 盡量取得高分！每 500 分解鎖新詞。</li>
+                       <li className="flex gap-2"><span className="text-yellow-400">●</span> <b>如何操作</b>: 電腦用方向鍵，手機點擊下方按鈕。</li>
+                       <li className="flex gap-2"><span className="text-slate-500">●</span> <b>遊戲目標</b>: 盡量取得高分！達到目標分數升級解鎖新詞。</li>
                        <li className="flex gap-2"><span className="text-green-400">●</span> <b>查看提示</b>: 點擊右上角書本圖示 <BookOpen size={12} className="inline"/>。</li>
                      </ul>
                      
@@ -1031,14 +984,9 @@
                          <div className="text-sm text-slate-300 italic">"{definitionModal.meaning_en}"</div>
                        </div>
                      </div>
-                     <div className="flex flex-col gap-3">
-                         <button onClick={() => speakWord(definitionModal.full)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold flex items-center justify-center gap-2">
-                            <Volume2 size={20} /> Listen Pronunciation
-                         </button>
-                         <button onClick={closeDefinitionModal} className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold shadow-lg shadow-blue-900/30">
-                           Continue
-                         </button>
-                     </div>
+                     <button onClick={closeDefinitionModal} className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold shadow-lg shadow-blue-900/30">
+                       Continue
+                     </button>
                    </div>
                 </div>
               )}
