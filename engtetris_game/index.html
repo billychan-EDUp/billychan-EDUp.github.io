@@ -193,16 +193,18 @@
           const gameLoopRef = useRef();
           const speedRef = useRef(900); 
           const touchStartRef = useRef(null);
+          // 用於防抖動 (Throttle)
+          const lastMoveTimeRef = useRef(0);
 
-          // "Bag" 機制: 確保生成的平均性
-          const bagRef = useRef([]);
+          // "Bag" 機制
+          const bagsRef = useRef({ prefix: [], root: [], suffix: [] });
+          const bagRef = useRef([]); // Pair-based bag
           
-          // 升級暫存標記 (Ref)
           const pendingLevelUpRef = useRef(false);
 
           // 無盡模式狀態
           const [shuffledPairs, setShuffledPairs] = useState([]); 
-          const [unlockedCount, setUnlockedCount] = useState(1); // 修改：從 1 個詞開始
+          const [unlockedCount, setUnlockedCount] = useState(1); 
 
           const speakWord = (word) => {
             if ('speechSynthesis' in window) {
@@ -233,20 +235,18 @@
             return Array.from(new Set(activePairs.flatMap(p => [p[0], p[1]])));
           }, [shuffledPairs, unlockedCount]);
 
-          // Bag 補貨函式：根據目前已解鎖的單字，成對放入袋子
+          // Bag 補貨函式
           const refillBag = useCallback(() => {
             if (shuffledPairs.length === 0) return [];
             
             const activePairs = shuffledPairs.slice(0, unlockedCount);
             let newBag = [];
             
-            // Pair-based filling: 確保 1:1 平衡
             activePairs.forEach(pair => {
                 newBag.push(pair[0]); 
                 newBag.push(pair[1]); 
             });
 
-            // Shuffle
             for (let i = newBag.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [newBag[i], newBag[j]] = [newBag[j], newBag[i]];
@@ -257,16 +257,14 @@
           const spawnPiece = useCallback(() => {
             if (shuffledPairs.length === 0) return;
 
-            // 1. 袋子檢查與補貨
             let bag = bagRef.current;
             if (bag.length === 0) {
                 bag = refillBag();
                 bagRef.current = bag;
             }
 
-            // 2. 抽出一個
             const selectedPart = bag.pop(); 
-            if (!selectedPart) return; // 防呆
+            if (!selectedPart) return; 
 
             const partColor = getPartColor(selectedPart);
 
@@ -291,10 +289,8 @@
               }
             });
             
-            // 防呆：如果方向全無 (不應發生)
             if (!hasRight && !hasDown && !hasLeft && !hasUp) hasRight = true;
 
-            // 隨機選擇一個合法的形狀方向
             const potentialShapes = [];
             if (hasRight) potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: 1, y: 0, cell: G }]);
             if (hasDown)  potentialShapes.push([{ x: 0, y: 0, cell: W }, { x: 0, y: 1, cell: G }]);
@@ -331,7 +327,6 @@
             }
           }, [grid, shuffledPairs, unlockedCount, refillBag]);
 
-          // 修改：碰撞檢測邏輯 (虛擬塊不應被牆壁擋著)
           const checkCollision = (pieceX, pieceY, shape, currentGrid, isSpawnCheck = false) => {
             for (let y = 0; y < shape.length; y++) {
               for (let x = 0; x < shape[y].length; x++) {
@@ -340,13 +335,11 @@
                   const targetY = pieceY + y;
                   const pieceCellType = shape[y][x].type;
 
-                  // 1. 邊界檢查
                   if (targetX < 0 || targetX >= GRID_W || targetY >= GRID_H) {
                     if (pieceCellType === 'word') return true;
                     if (pieceCellType === 'ghost') continue;
                   }
 
-                  // 2. 網格佔用檢查
                   if (targetY >= 0 && targetX >= 0 && targetX < GRID_W) {
                     const gridCell = currentGrid[targetY][targetX];
                     if (gridCell === null) continue;
@@ -532,7 +525,6 @@
             let currentScore = score + points;
             let levelUpTriggered = false;
             
-            // --- 升級邏輯 ---
             if (currentScore >= nextLevelScore) {
               levelUpTriggered = true;
               
@@ -600,7 +592,13 @@
             }, 400);
           };
 
+          // 手動移動函數 - 加入防抖動 (Throttle)
           const move = useCallback((dx, dy) => {
+            const now = Date.now();
+            // 如果是手動移動且距離上次移動小於 100ms，忽略
+            if (now - lastMoveTimeRef.current < 100) return;
+            lastMoveTimeRef.current = now;
+
             if (gameState !== 'PLAYING' || !activePiece) return;
             const nextX = activePiece.x + dx;
             const nextY = activePiece.y + dy;
@@ -609,6 +607,18 @@
             } else if (dy > 0) {
               lockPiece();
             }
+          }, [gameState, activePiece, grid]);
+
+          // 自動下落不經過 throttle
+          const autoMove = useCallback((dx, dy) => {
+             if (gameState !== 'PLAYING' || !activePiece) return;
+             const nextX = activePiece.x + dx;
+             const nextY = activePiece.y + dy;
+             if (!checkCollision(nextX, nextY, activePiece.shape, grid)) {
+               setActivePiece({ ...activePiece, x: nextX, y: nextY });
+             } else if (dy > 0) {
+               lockPiece();
+             }
           }, [gameState, activePiece, grid]);
 
           const drop = () => {
@@ -622,11 +632,10 @@
 
           useEffect(() => {
             if (gameState !== 'PLAYING') return;
-            gameLoopRef.current = setInterval(() => move(0, 1), speedRef.current);
+            gameLoopRef.current = setInterval(() => autoMove(0, 1), speedRef.current);
             return () => clearInterval(gameLoopRef.current);
-          }, [gameState, move]); 
+          }, [gameState, autoMove]); 
 
-          // --- 計時器邏輯 ---
           useEffect(() => {
             if (gameState !== 'PLAYING') return;
             
@@ -659,15 +668,15 @@
             const shuffled = [...WORD_PAIRS_DATA].sort(() => Math.random() - 0.5);
             setShuffledPairs(shuffled);
             
-            bagRef.current = []; // Reset bag
+            bagRef.current = [];
 
-            setUnlockedCount(1); // 修改：從 1 個詞開始
+            setUnlockedCount(1); 
             setLevel(1);
             setNextLevelScore(300); 
             setTimeLeft(60);        
             speedRef.current = 900;
             
-            const startWords = shuffled.slice(0, 1).map(p => p[2]).join(', '); // Update message for 1 word
+            const startWords = shuffled.slice(0, 1).map(p => p[2]).join(', ');
             setTopMessage(`初始單字: ${startWords}`);
 
             setGrid(Array(GRID_H).fill(null).map(() => Array(GRID_W).fill(null)));
@@ -741,9 +750,7 @@
               )}
 
               {/* 遊戲主區域 */}
-              <div 
-                className="flex-1 relative flex flex-col items-center justify-center bg-slate-900 overflow-hidden w-full max-w-md mx-auto"
-              >
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full relative p-2">
                 
                 {/* 1. 上方版塊：通知 */}
                 {gameState === 'PLAYING' && (
@@ -757,7 +764,7 @@
 
                 {/* 2. 遊戲網格 */}
                 <div 
-                  className="relative shrink-1 mt-10 mb-2"
+                  className="relative flex-1 w-full flex items-center justify-center"
                   onTouchStart={e => {
                       touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
                   }}
@@ -772,17 +779,14 @@
                           if (dy < -30) drop();
                       }
                   }}
-                  style={{
-                    aspectRatio: `${GRID_W}/${GRID_H}`,
-                    height: 'min(75vh, 800px)',
-                    maxHeight: '100%',
-                    width: 'auto',
-                    maxWidth: '100%'
-                  }}
                 >
                   <div 
                     className="grid gap-[1px] bg-slate-800/50 p-1 rounded border-2 border-slate-700 shadow-xl"
                     style={{
+                      aspectRatio: `${GRID_W}/${GRID_H}`,
+                      height: '100%',
+                      maxHeight: '100%',
+                      maxWidth: '100%',
                       gridTemplateColumns: `repeat(${GRID_W}, minmax(0, 1fr))`
                     }}
                   >
@@ -804,11 +808,11 @@
                           <div 
                             key={`${x}-${y}`} 
                             className={`
-                              w-full h-full rounded-[2px] flex items-center justify-center text-[10px] sm:text-xs font-bold overflow-hidden transition-colors duration-75
+                              w-full h-full rounded-[2px] flex items-center justify-center font-bold overflow-hidden transition-colors duration-75
                               ${renderData ? renderData.color : 'bg-slate-800/30'}
                               ${isGhost ? 'opacity-40' : ''}
                               ${activeCell && !isGhost ? 'ring-1 ring-white/80 z-10' : ''}
-                              text-sm md:text-base lg:text-lg
+                              text-sm sm:text-base lg:text-xl
                             `}
                           >
                             {renderData && !isGhost ? renderData.text : ''}
@@ -828,6 +832,7 @@
                         </div>
                       ))}
                       <div className="text-2xl text-green-400 mt-2 font-mono">+{100 * (combo)} pts</div>
+                      <div className="text-xl text-yellow-400 mt-1 font-mono">+{lastAddedTime} sec</div>
                     </div>
                   )}
                 </div>
@@ -838,19 +843,22 @@
                   <div className="grid grid-cols-3 gap-2 h-10 w-full max-w-sm mx-auto">
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
-                      onPointerDown={(e) => { e.preventDefault(); move(-1, 0); }}
+                      onMouseDown={(e) => { e.preventDefault(); move(-1, 0); }}
+                      onTouchStart={(e) => { e.preventDefault(); move(-1, 0); }}
                     >
                       <ArrowLeft size={18} className="text-slate-300" />
                     </button>
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
-                      onPointerDown={(e) => { e.preventDefault(); move(0, 1); }}
+                      onMouseDown={(e) => { e.preventDefault(); move(0, 1); }}
+                      onTouchStart={(e) => { e.preventDefault(); move(0, 1); }}
                     >
                       <ArrowDown size={18} className="text-slate-300" />
                     </button>
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
-                      onPointerDown={(e) => { e.preventDefault(); move(1, 0); }}
+                      onMouseDown={(e) => { e.preventDefault(); move(1, 0); }}
+                      onTouchStart={(e) => { e.preventDefault(); move(1, 0); }}
                     >
                       <ArrowRight size={18} className="text-slate-300" />
                     </button>
