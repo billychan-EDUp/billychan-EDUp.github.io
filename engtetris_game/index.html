@@ -90,6 +90,7 @@
         const VolumeX = (props) => <IconWrapper {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></IconWrapper>;
         const Clock = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></IconWrapper>;
         const Trophy = (props) => <IconWrapper {...props}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17" /><path d="M14 14.66V17" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></IconWrapper>;
+        const PauseIcon = (props) => <IconWrapper {...props}><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></IconWrapper>;
 
         // --- 遊戲資料庫 ---
         const WORD_PAIRS_DATA = [
@@ -193,7 +194,6 @@
           const gameLoopRef = useRef();
           const speedRef = useRef(900); 
           const touchStartRef = useRef(null);
-          // 用於防抖動 (Throttle)
           const lastMoveTimeRef = useRef(0);
 
           // "Bag" 機制
@@ -205,6 +205,19 @@
           // 無盡模式狀態
           const [shuffledPairs, setShuffledPairs] = useState([]); 
           const [unlockedCount, setUnlockedCount] = useState(1); 
+
+          // 初始化音訊
+          const initAudio = () => {
+             if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance('');
+                window.speechSynthesis.speak(utterance);
+             }
+             if (audioRef.current) {
+                 audioRef.current.play().then(() => {
+                     audioRef.current.pause();
+                 }).catch(e => console.log("Audio unlock interaction"));
+             }
+          };
 
           const speakWord = (word) => {
             if ('speechSynthesis' in window) {
@@ -324,9 +337,11 @@
               setGameState('GAMEOVER');
             } else {
               setActivePiece(newPiece);
+              setGameState('PLAYING');
             }
           }, [grid, shuffledPairs, unlockedCount, refillBag]);
 
+          // 修改：碰撞檢測邏輯 (虛擬塊不應被牆壁擋著)
           const checkCollision = (pieceX, pieceY, shape, currentGrid, isSpawnCheck = false) => {
             for (let y = 0; y < shape.length; y++) {
               for (let x = 0; x < shape[y].length; x++) {
@@ -335,11 +350,13 @@
                   const targetY = pieceY + y;
                   const pieceCellType = shape[y][x].type;
 
+                  // 1. 邊界檢查
                   if (targetX < 0 || targetX >= GRID_W || targetY >= GRID_H) {
                     if (pieceCellType === 'word') return true;
                     if (pieceCellType === 'ghost') continue;
                   }
 
+                  // 2. 網格佔用檢查
                   if (targetY >= 0 && targetX >= 0 && targetX < GRID_W) {
                     const gridCell = currentGrid[targetY][targetX];
                     if (gridCell === null) continue;
@@ -367,7 +384,6 @@
                   
                   if (targetY >= 0 && targetY < GRID_H && targetX >= 0 && targetX < GRID_W) {
                     const gridCell = newGrid[targetY][targetX];
-                    
                     if (cell.type === 'word') {
                        newGrid[targetY][targetX] = cell; 
                     } else if (cell.type === 'ghost') {
@@ -386,6 +402,7 @@
 
             const matches = findMatches(settledGrid);
             if (matches.length > 0) {
+              setGameState('ANIMATING');
               await handleMatches(settledGrid, matches);
             } else {
               setCombo(0); 
@@ -584,6 +601,7 @@
             setTimeout(() => {
               const newMatches = findMatches(newGrid);
               if (newMatches.length > 0) {
+                setGameState('ANIMATING');
                 handleMatches(newGrid, newMatches);
               } else {
                 setClearedWords([]);
@@ -592,10 +610,8 @@
             }, 400);
           };
 
-          // 手動移動函數 - 加入防抖動 (Throttle)
           const move = useCallback((dx, dy) => {
             const now = Date.now();
-            // 如果是手動移動且距離上次移動小於 100ms，忽略
             if (now - lastMoveTimeRef.current < 100) return;
             lastMoveTimeRef.current = now;
 
@@ -609,7 +625,6 @@
             }
           }, [gameState, activePiece, grid]);
 
-          // 自動下落不經過 throttle
           const autoMove = useCallback((dx, dy) => {
              if (gameState !== 'PLAYING' || !activePiece) return;
              const nextX = activePiece.x + dx;
@@ -638,7 +653,6 @@
 
           useEffect(() => {
             if (gameState !== 'PLAYING') return;
-            
             const timerInterval = setInterval(() => {
               setTimeLeft(prevTime => {
                 if (prevTime <= 1) {
@@ -648,7 +662,6 @@
                 return prevTime - 1;
               });
             }, 1000);
-
             return () => clearInterval(timerInterval);
           }, [gameState]);
 
@@ -665,6 +678,8 @@
           }, [gameState, move]);
 
           const startGame = () => {
+            initAudio(); 
+            
             const shuffled = [...WORD_PAIRS_DATA].sort(() => Math.random() - 0.5);
             setShuffledPairs(shuffled);
             
@@ -687,11 +702,13 @@
             pendingLevelUpRef.current = false;
           };
 
+          // 僅在第一次需要手動觸發 (在 startGame 設置狀態後，第一次 spawn 由 useEffect 觸發還是有風險)
           useEffect(() => {
-            if (gameState === 'PLAYING' && activePiece === null && shuffledPairs.length > 0) {
-                spawnPiece();
-            }
-          }, [gameState, shuffledPairs, activePiece, spawnPiece]);
+             // 只有當 shuffledPairs 剛被設定，且遊戲剛開始(activePiece為空)時才觸發
+             if (gameState === 'PLAYING' && activePiece === null && shuffledPairs.length > 0 && grid.every(row => row.every(c => c === null))) {
+                 spawnPiece();
+             }
+          }, [shuffledPairs, gameState]); 
 
           const closeDefinitionModal = () => {
             setDefinitionModal(null);
@@ -742,7 +759,18 @@
                     <button onClick={() => setIsMuted(!isMuted)} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all">
                       {isMuted ? <VolumeX size={20} className="text-red-400"/> : <Volume2 size={20} className="text-green-400"/>}
                     </button>
-                    <button onClick={() => { if (gameState === 'PLAYING') setGameState('PAUSED'); setShowCollection(true); }} className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all">
+                    {/* Pause Button */}
+                    <button 
+                      onClick={() => setGameState('PAUSED')} 
+                      className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all"
+                    >
+                      <PauseIcon size={20} className="text-blue-300" />
+                    </button>
+                    {/* Collection Button */}
+                    <button 
+                      onClick={() => { if (gameState === 'PLAYING') setGameState('PAUSED'); setShowCollection(true); }} 
+                      className="p-2 bg-slate-700 rounded-full hover:bg-slate-600 active:scale-95 transition-all"
+                    >
                       <BookOpen size={20} className="text-blue-300" />
                     </button>
                   </div>
@@ -750,21 +778,21 @@
               )}
 
               {/* 遊戲主區域 */}
-              <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full relative p-2">
+              <div className="flex-1 flex flex-col items-center justify-start min-h-0 w-full max-w-3xl mx-auto relative overflow-hidden">
                 
                 {/* 1. 上方版塊：通知 */}
                 {gameState === 'PLAYING' && (
-                  <div className="w-full flex justify-center py-2 px-4 shrink-0 z-10 absolute top-0">
-                      <div className="bg-slate-800/80 border border-slate-600 rounded-full px-4 py-2 text-sm text-yellow-300 font-bold shadow-sm w-full text-center truncate flex items-center justify-center gap-2 backdrop-blur-sm">
-                          <Sparkles className="animate-spin-slow w-4 h-4 shrink-0 text-yellow-400" />
+                  <div className="w-full flex justify-center py-2 px-4 shrink-0 z-10 min-h-[32px]">
+                      <div className="bg-slate-800/90 border border-slate-600 rounded-full px-4 py-1 text-xs text-yellow-300 font-bold shadow-sm w-auto max-w-full text-center truncate flex items-center justify-center gap-2">
+                          <Sparkles className="animate-spin-slow w-3 h-3 shrink-0 text-yellow-400" />
                           <span className="truncate">{topMessage || `Level ${level}`}</span>
                       </div>
                   </div>
                 )}
 
-                {/* 2. 遊戲網格 */}
+                {/* 2. 遊戲網格容器 (Flex-1 to take ALL remaining space) */}
                 <div 
-                  className="relative flex-1 w-full flex items-center justify-center"
+                  className="flex-1 w-full flex items-center justify-center relative p-1"
                   onTouchStart={e => {
                       touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
                   }}
@@ -784,9 +812,11 @@
                     className="grid gap-[1px] bg-slate-800/50 p-1 rounded border-2 border-slate-700 shadow-xl"
                     style={{
                       aspectRatio: `${GRID_W}/${GRID_H}`,
-                      height: '100%',
+                      height: '100%', 
+                      width: 'auto',
                       maxHeight: '100%',
                       maxWidth: '100%',
+                      objectFit: 'contain',
                       gridTemplateColumns: `repeat(${GRID_W}, minmax(0, 1fr))`
                     }}
                   >
@@ -808,14 +838,17 @@
                           <div 
                             key={`${x}-${y}`} 
                             className={`
-                              w-full h-full rounded-[2px] flex items-center justify-center font-bold overflow-hidden transition-colors duration-75
+                              w-full h-full rounded-[1px] md:rounded-[2px] flex items-center justify-center font-bold overflow-hidden transition-colors duration-75
                               ${renderData ? renderData.color : 'bg-slate-800/30'}
                               ${isGhost ? 'opacity-40' : ''}
                               ${activeCell && !isGhost ? 'ring-1 ring-white/80 z-10' : ''}
-                              text-sm sm:text-base lg:text-xl
+                              text-xs md:text-base lg:text-xl
                             `}
                           >
-                            {renderData && !isGhost ? renderData.text : ''}
+                             {/* Responsive text size */}
+                             <span className="text-[10px] xs:text-xs sm:text-sm md:text-base select-none leading-none">
+                               {renderData && !isGhost ? renderData.text : ''}
+                             </span>
                           </div>
                         );
                       })
@@ -838,9 +871,10 @@
                 </div>
               </div>
 
-              {/* 3. 下方控制區 */}
+              {/* 3. 下方控制區 (Fixed height at bottom) */}
               <div className="w-full px-4 pb-4 pt-2 shrink-0 bg-slate-900 z-20">
                   <div className="grid grid-cols-3 gap-2 h-10 w-full max-w-sm mx-auto">
+                    {/* 左 */}
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
                       onMouseDown={(e) => { e.preventDefault(); move(-1, 0); }}
@@ -848,6 +882,8 @@
                     >
                       <ArrowLeft size={18} className="text-slate-300" />
                     </button>
+                    
+                    {/* 下 (加速) */}
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
                       onMouseDown={(e) => { e.preventDefault(); move(0, 1); }}
@@ -855,6 +891,8 @@
                     >
                       <ArrowDown size={18} className="text-slate-300" />
                     </button>
+
+                    {/* 右 */}
                     <button 
                       className="bg-slate-800 rounded-lg flex items-center justify-center active:bg-slate-700 active:scale-95 transition-all border border-slate-600 shadow-md btn-active touch-manipulation"
                       onMouseDown={(e) => { e.preventDefault(); move(1, 0); }}
@@ -865,7 +903,28 @@
                 </div>
               </div>
 
-              {/* 升級畫面 (LEVEL UP Modal) */}
+              {/* 暫停選單 */}
+              {gameState === 'PAUSED' && !definitionModal && (
+                <div className="absolute inset-0 z-50 bg-slate-900/95 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-200">
+                   <div className="bg-slate-800 p-8 rounded-2xl border border-slate-600 shadow-2xl max-w-sm w-full space-y-4">
+                     <h2 className="text-3xl font-bold text-white mb-2 tracking-wider">PAUSED</h2>
+                     
+                     <button onClick={() => setGameState('PLAYING')} className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-xl text-white shadow-lg">
+                       Resume
+                     </button>
+                     
+                     <button onClick={() => setShowCollection(true)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-lg text-slate-200 border border-slate-600">
+                       <BookOpen size={18} className="inline mr-2" /> Word Collection
+                     </button>
+                     
+                     <button onClick={() => setGameState('HOME')} className="w-full py-3 bg-red-900/50 hover:bg-red-900/70 rounded-xl font-bold text-lg text-red-300 border border-red-800/50">
+                       Exit to Home
+                     </button>
+                   </div>
+                </div>
+              )}
+
+              {/* 升級畫面 */}
               {gameState === 'LEVEL_UP' && (
                 <div className="absolute inset-0 z-50 bg-slate-900/95 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-300">
                    <div className="bg-slate-800 p-8 rounded-2xl border-2 border-yellow-500 shadow-[0_0_50px_rgba(234,179,8,0.3)] max-w-sm w-full">
