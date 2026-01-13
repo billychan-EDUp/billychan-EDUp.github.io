@@ -55,6 +55,17 @@
         @keyframes fall {
             to { transform: translateY(100vh) rotate(720deg); }
         }
+
+        /* AI Feature Styles */
+        .ai-glow {
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 5px #60a5fa; }
+            to { box-shadow: 0 0 20px #3b82f6, 0 0 10px #93c5fd; }
+        }
+        .markdown-body ul { list-style-type: disc; margin-left: 1.5em; }
+        .markdown-body ol { list-style-type: decimal; margin-left: 1.5em; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -165,10 +176,36 @@
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end">
-                <button onclick="startGeneration()" id="generateBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg transform transition active:scale-95 flex items-center">
+            <!-- Action Buttons Area -->
+            <div class="mt-6 flex flex-col sm:flex-row justify-end items-center gap-4">
+                <!-- Gemini Feature 1: Topic Explainer -->
+                <button onclick="explainTopic()" class="text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center bg-purple-50 px-4 py-2 rounded-full border border-purple-200 hover:bg-purple-100 transition">
+                    <i class="fa-solid fa-lightbulb mr-2 text-yellow-500"></i> ✨ AI 老師講解此課題
+                </button>
+
+                <button onclick="startGeneration()" id="generateBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg transform transition active:scale-95 flex items-center w-full sm:w-auto justify-center">
                     <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> 開始出題
                 </button>
+            </div>
+
+            <!-- Topic Explanation Result Area -->
+            <div id="topicExplanationArea" class="hidden mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100 relative">
+                <button onclick="this.parentElement.classList.add('hidden')" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mr-3">
+                        <div class="w-10 h-10 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 text-xl">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-purple-800 mb-1">AI 課題速習</h4>
+                        <div id="topicExplanationContent" class="text-gray-700 text-sm leading-relaxed markdown-body">
+                            <!-- Content -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -185,9 +222,9 @@
 
     </main>
 
-    <!-- Templates (Hidden) -->
+    <!-- Templates (Modified with AI Hint Button) -->
     <template id="mcTemplate">
-        <div class="question-card bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 relative">
+        <div class="question-card bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 relative group">
             <div class="flex justify-between items-start mb-4">
                 <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">選擇題</span>
                 <span class="question-number text-gray-400 font-bold text-xl">#1</span>
@@ -196,10 +233,25 @@
             <div class="options-grid grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                 <!-- Options injected via JS -->
             </div>
+            
+            <!-- AI Hint Area -->
+            <div class="ai-hint-container mb-4 hidden">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start">
+                    <i class="fa-solid fa-lightbulb text-yellow-500 mt-1 mr-2"></i>
+                    <div class="hint-content">正在思考提示...</div>
+                </div>
+            </div>
+
             <div class="feedback-area hidden mt-4 p-4 rounded-lg bg-gray-50"></div>
-            <button class="check-btn mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full md:w-auto">
-                核對答案
-            </button>
+            
+            <div class="flex justify-between items-center mt-4">
+                <button class="ai-hint-btn text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center px-3 py-1 rounded hover:bg-yellow-50 transition">
+                    <i class="fa-solid fa-hand-sparkles mr-1"></i> 💡 求助 AI
+                </button>
+                <button class="check-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded md:w-auto">
+                    核對答案
+                </button>
+            </div>
         </div>
     </template>
 
@@ -213,10 +265,25 @@
             <div class="mb-4">
                 <input type="text" placeholder="請在此輸入答案" class="user-input w-full md:w-1/2 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-300 focus:outline-none">
             </div>
+
+            <!-- AI Hint Area -->
+            <div class="ai-hint-container mb-4 hidden">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start">
+                    <i class="fa-solid fa-lightbulb text-yellow-500 mt-1 mr-2"></i>
+                    <div class="hint-content">正在思考提示...</div>
+                </div>
+            </div>
+
             <div class="feedback-area hidden mt-4 p-4 rounded-lg bg-gray-50"></div>
-            <button class="check-btn mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full md:w-auto">
-                核對答案
-            </button>
+            
+            <div class="flex justify-between items-center mt-4">
+                <button class="ai-hint-btn text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center px-3 py-1 rounded hover:bg-yellow-50 transition">
+                    <i class="fa-solid fa-hand-sparkles mr-1"></i> 💡 求助 AI
+                </button>
+                <button class="check-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded md:w-auto">
+                    核對答案
+                </button>
+            </div>
         </div>
     </template>
 
@@ -230,10 +297,25 @@
             <div class="matching-container grid grid-cols-1 gap-4 mb-4">
                 <!-- Matching items injected via JS -->
             </div>
+
+            <!-- AI Hint Area -->
+            <div class="ai-hint-container mb-4 hidden">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start">
+                    <i class="fa-solid fa-lightbulb text-yellow-500 mt-1 mr-2"></i>
+                    <div class="hint-content">正在思考提示...</div>
+                </div>
+            </div>
+
             <div class="feedback-area hidden mt-4 p-4 rounded-lg bg-gray-50"></div>
-            <button class="check-btn mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full md:w-auto">
-                核對答案
-            </button>
+            
+            <div class="flex justify-between items-center mt-4">
+                <button class="ai-hint-btn text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center px-3 py-1 rounded hover:bg-yellow-50 transition">
+                    <i class="fa-solid fa-hand-sparkles mr-1"></i> 💡 求助 AI
+                </button>
+                <button class="check-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded md:w-auto">
+                    核對答案
+                </button>
+            </div>
         </div>
     </template>
 
@@ -246,9 +328,21 @@
             <p class="question-text text-lg text-gray-800 font-medium mb-6"></p>
             <textarea rows="4" class="user-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-300 focus:outline-none resize-none" placeholder="請寫下你的解題步驟或答案..."></textarea>
             
+            <!-- AI Hint Area -->
+            <div class="ai-hint-container my-4 hidden">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start">
+                    <i class="fa-solid fa-lightbulb text-yellow-500 mt-1 mr-2"></i>
+                    <div class="hint-content">正在思考提示...</div>
+                </div>
+            </div>
+
             <div class="feedback-area hidden mt-4 p-4 rounded-lg bg-gray-50 text-sm"></div>
             
-            <div class="flex gap-2 mt-4">
+            <div class="flex flex-wrap gap-2 mt-4">
+                <button class="ai-hint-btn text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center px-3 py-1 rounded hover:bg-yellow-50 transition border border-yellow-200 mr-auto">
+                    <i class="fa-solid fa-hand-sparkles mr-1"></i> 💡 求助 AI
+                </button>
+
                 <button class="ai-grade-btn hidden bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded items-center">
                     <i class="fa-solid fa-robot mr-2"></i> AI 評分
                 </button>
@@ -283,12 +377,16 @@
         function setMode(isAI) {
             USE_AI = isAI;
             const badge = document.getElementById('modeBadge');
+            const aiButtons = document.querySelectorAll('.ai-grade-btn'); // For Open ended
+            
             if(isAI) {
                 badge.textContent = "AI 模式";
                 badge.className = "bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-blue-400";
+                aiButtons.forEach(btn => btn.classList.remove('hidden'));
             } else {
                 badge.textContent = "離線模式";
                 badge.className = "bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-gray-400";
+                aiButtons.forEach(btn => btn.classList.add('hidden'));
             }
         }
 
@@ -299,7 +397,7 @@
                 localStorage.setItem('gemini_api_key', input);
                 document.getElementById('apiKeyModal').classList.add('hidden');
                 setMode(true);
-                alert("已切換至 AI 模式！");
+                alert("已切換至 AI 模式！現在可以使用智能提示功能了。");
             } else {
                 alert('請輸入有效的 API Key');
             }
@@ -313,6 +411,48 @@
         function toggleConfig() {
             const panel = document.getElementById('configPanel');
             panel.classList.toggle('hidden');
+        }
+
+        // --- Gemini Feature 1: Topic Explainer ---
+
+        async function explainTopic() {
+            if (!API_KEY) {
+                showApiKeyModal();
+                return;
+            }
+
+            const grade = document.getElementById('gradeSelect').value;
+            const topic = document.getElementById('topicSelect').options[document.getElementById('topicSelect').selectedIndex].text;
+            
+            const area = document.getElementById('topicExplanationArea');
+            const content = document.getElementById('topicExplanationContent');
+            
+            area.classList.remove('hidden');
+            content.innerHTML = '<div class="flex items-center"><i class="fas fa-spinner fa-spin mr-2"></i> AI 老師正在整理筆記...</div>';
+
+            const prompt = `You are a fun primary school math teacher in Hong Kong.
+            Explain the math concept of "${topic}" for a ${grade} student.
+            Use a fun analogy or short story. Keep it encouraging and simple.
+            Language: Traditional Chinese (Hong Kong style).
+            Max length: 150 words.`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+                
+                const text = data.candidates[0].content.parts[0].text;
+                // Simple markdown parsing for bold
+                content.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+
+            } catch (error) {
+                content.innerHTML = `<span class="text-red-500">無法獲取解釋。請檢查 API Key 或網絡。</span>`;
+            }
         }
 
         // --- Main Generation Flow ---
@@ -335,7 +475,7 @@
                 document.getElementById('loadingText').textContent = "正在生成題目 (離線)...";
                 setTimeout(() => {
                     const questions = LocalMathEngine.generate(3, grade, topic, type, difficulty);
-                    renderQuestions(questions);
+                    renderQuestions(questions, grade); // Pass grade for context
                     document.getElementById('loadingArea').classList.add('hidden');
                     document.getElementById('generateBtn').disabled = false;
                     document.getElementById('generateBtn').classList.remove('opacity-50', 'cursor-not-allowed');
@@ -501,7 +641,22 @@
                     let cm = this.randomInt(100, 500);
                     let m = Math.floor(cm / 100);
                     let rem = cm % 100;
-                    if(gNum === 1) return { questionText: `比較長度: ${this.randomInt(1,10)}cm 與 ${this.randomInt(11,20)}cm，較長的是`, answerVal: `${this.randomInt(11,20)}cm` }; // Simplification logic
+                    
+                    if(gNum === 1) {
+                         // Fix: Generate values once to ensure question matches answer
+                         let shortLen = this.randomInt(1, 10);
+                         let longLen = this.randomInt(11, 20);
+                         
+                         // Randomize display order (e.g., "4 vs 20" or "20 vs 4")
+                         let isFirstLonger = Math.random() > 0.5;
+                         let val1 = isFirstLonger ? longLen : shortLen;
+                         let val2 = isFirstLonger ? shortLen : longLen;
+
+                         return { 
+                             questionText: `比較長度: ${val1}cm 與 ${val2}cm，較長的是`, 
+                             answerVal: `${longLen}cm` 
+                         };
+                    }
                     
                     return { 
                         questionText: `${cm}cm 等於多少 m 和 cm (格式: Xm Ycm)`, 
@@ -600,7 +755,7 @@
             }
         };
 
-        // --- Gemini AI Logic (Existing) ---
+        // --- Gemini AI Logic (Existing & New) ---
 
         async function generateWithAI(grade, topic, type, difficulty) {
             const systemPrompt = `You are a friendly Mathematics Teacher for Hong Kong primary students.
@@ -621,7 +776,7 @@
 
                 let rawText = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
                 const parsedData = JSON.parse(rawText);
-                renderQuestions(parsedData.questions);
+                renderQuestions(parsedData.questions, grade);
 
             } catch (error) {
                 console.error(error);
@@ -637,7 +792,7 @@
 
         // --- Rendering Logic (Shared) ---
 
-        function renderQuestions(questions) {
+        function renderQuestions(questions, grade) {
             const container = document.getElementById('questionsContainer');
             container.innerHTML = '';
 
@@ -650,28 +805,73 @@
                 let clone;
                 if (q.type === 'mc') {
                     clone = document.getElementById('mcTemplate').content.cloneNode(true);
-                    setupMC(clone, q, index);
+                    setupMC(clone, q, index, grade);
                 } else if (q.type === 'matching') {
                     clone = document.getElementById('matchingTemplate').content.cloneNode(true);
-                    setupMatching(clone, q, index);
+                    setupMatching(clone, q, index, grade);
                 } else if (q.type === 'open_ended') {
                     clone = document.getElementById('openEndedTemplate').content.cloneNode(true);
-                    setupOpenEnded(clone, q, index);
+                    setupOpenEnded(clone, q, index, grade);
                 } else {
                     clone = document.getElementById('inputTemplate').content.cloneNode(true);
-                    setupInput(clone, q, index);
+                    setupInput(clone, q, index, grade);
                 }
                 container.appendChild(clone);
             });
         }
 
+        // --- Gemini Feature 2: AI Hint Implementation ---
+
+        function setupAIHint(clone, q, grade) {
+            const btn = clone.querySelector('.ai-hint-btn');
+            const hintContainer = clone.querySelector('.ai-hint-container');
+            const hintContent = clone.querySelector('.hint-content');
+
+            btn.addEventListener('click', async () => {
+                if (!API_KEY) {
+                    showApiKeyModal();
+                    return;
+                }
+
+                hintContainer.classList.remove('hidden');
+                hintContent.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI 老師正在思考提示...';
+                
+                const hintPrompt = `
+                    You are a helpful math tutor for a ${grade} student.
+                    The student is stuck on this question: "${q.question}"
+                    The answer is: "${q.answer}"
+                    Give a helpful hint to guide them. Do NOT give the direct answer.
+                    Language: Traditional Chinese.
+                    Style: Encouraging, Socratic method (ask a guiding question).
+                    Keep it short (1-2 sentences).
+                `;
+
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: hintPrompt }] }] })
+                    });
+
+                    const data = await response.json();
+                    const hintText = data.candidates[0].content.parts[0].text;
+                    hintContent.innerHTML = hintText;
+
+                } catch (error) {
+                    hintContent.innerHTML = "無法獲取提示，請稍後再試。";
+                }
+            });
+        }
+
         // --- Interaction Handlers (Shared) ---
 
-        function setupMC(clone, q, index) {
+        function setupMC(clone, q, index, grade) {
             clone.querySelector('.question-number').textContent = `#${index + 1}`;
             clone.querySelector('.question-text').textContent = q.question;
             const grid = clone.querySelector('.options-grid');
             
+            setupAIHint(clone, q, grade); // Attach Hint Logic
+
             q.options.forEach((opt) => {
                 const div = document.createElement('div');
                 div.className = 'option-item border rounded-lg p-3 cursor-pointer hover:bg-blue-50 transition flex items-center';
@@ -688,26 +888,32 @@
                 const selected = document.querySelector(`input[name="q_${index}"]:checked`);
                 if (!selected) return alert('請選擇一個答案！');
                 const isCorrect = selected.value.toString() === q.answer.toString() || selected.value.includes(q.answer);
-                showFeedback(e.target.previousElementSibling, isCorrect, q.explanation, q.answer);
+                showFeedback(e.target.closest('.question-card').querySelector('.feedback-area'), isCorrect, q.explanation, q.answer);
                 if(isCorrect) triggerConfetti(e.target);
             });
         }
 
-        function setupInput(clone, q, index) {
+        function setupInput(clone, q, index, grade) {
             clone.querySelector('.question-number').textContent = `#${index + 1}`;
             clone.querySelector('.question-text').textContent = q.question;
+            
+            setupAIHint(clone, q, grade); // Attach Hint Logic
+
             clone.querySelector('.check-btn').addEventListener('click', (e) => {
                 const val = e.target.closest('.question-card').querySelector('input').value.trim();
                 if (!val) return alert('請輸入答案！');
                 let isCorrect = val == q.answer; 
-                showFeedback(e.target.previousElementSibling, isCorrect, q.explanation, q.answer);
+                showFeedback(e.target.closest('.question-card').querySelector('.feedback-area'), isCorrect, q.explanation, q.answer);
                 if(isCorrect) triggerConfetti(e.target);
             });
         }
 
-        function setupMatching(clone, q, index) {
+        function setupMatching(clone, q, index, grade) {
             clone.querySelector('.question-number').textContent = `#${index + 1}`;
             clone.querySelector('.question-text').textContent = q.question;
+            
+            setupAIHint(clone, q, grade); // Attach Hint Logic
+
             const container = clone.querySelector('.matching-container');
             const rightOptions = [...q.matching_pairs.map(p => p.right)].sort(() => Math.random() - 0.5);
 
@@ -736,16 +942,18 @@
                     sel.classList.toggle('bg-green-50', isRight);
                     if(!isRight) allCorrect = false;
                 });
-                showFeedback(e.target.previousElementSibling, allCorrect, allCorrect ? "全對了！" : "有些配對不正確。", null);
+                showFeedback(e.target.closest('.question-card').querySelector('.feedback-area'), allCorrect, allCorrect ? "全對了！" : "有些配對不正確。", null);
                 if(allCorrect) triggerConfetti(e.target);
             });
         }
 
-        function setupOpenEnded(clone, q, index) {
+        function setupOpenEnded(clone, q, index, grade) {
             clone.querySelector('.question-number').textContent = `#${index + 1}`;
             clone.querySelector('.question-text').textContent = q.question;
             const feedback = clone.querySelector('.feedback-area');
             const aiBtn = clone.querySelector('.ai-grade-btn');
+
+            setupAIHint(clone, q, grade); // Attach Hint Logic
 
             if(!USE_AI) aiBtn.classList.add('hidden');
             else aiBtn.classList.remove('hidden');
@@ -756,7 +964,38 @@
             });
 
             aiBtn.addEventListener('click', async (e) => {
-               alert("離線模式不支援 AI 評分，請參考標準答案。");
+                if (!API_KEY) { showApiKeyModal(); return; }
+                const userAns = e.target.closest('.question-card').querySelector('textarea').value;
+                if(!userAns.trim()) { alert("請先寫下你的答案"); return; }
+
+                e.target.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 評分中...';
+                
+                const gradingPrompt = `
+                    Grade this math answer for a primary student (${grade}).
+                    Question: ${q.question}
+                    Reference Answer: ${q.answer}
+                    Student Answer: ${userAns}
+                    Respond in Traditional Chinese. Be encouraging. 
+                    Format: "評語: [Comment] (分數: X/10)"
+                `;
+
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: gradingPrompt }] }] })
+                    });
+                    const data = await response.json();
+                    const result = data.candidates[0].content.parts[0].text;
+                    
+                    feedback.classList.remove('hidden');
+                    feedback.innerHTML = `<div class="bg-indigo-50 p-3 rounded text-indigo-900 border border-indigo-200">${result}</div>`;
+
+                } catch(err) {
+                    alert("評分失敗，請檢查網絡");
+                } finally {
+                    e.target.innerHTML = '<i class="fa-solid fa-robot mr-2"></i> AI 評分';
+                }
             });
         }
 
