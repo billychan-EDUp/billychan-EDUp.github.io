@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>香港小學數學 AI 智能導師 (課程適配版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f9ff;
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            animation: fall linear forwards;
+            z-index: 100;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(720deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <!-- Logo Area: Priority load logo.png, fallback to icon -->
+                <img src="logo.png" alt="Logo" class="h-10 w-auto object-contain" onerror="this.style.display='none'; document.getElementById('fallback-icon').classList.remove('hidden');">
+                <i id="fallback-icon" class="fa-solid fa-calculator text-3xl text-blue-600 hidden"></i>
+                
+                <h1 class="text-2xl font-bold text-gray-800">數神 <span class="gradient-text">智能導師</span></h1>
+                <span id="modeBadge" class="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-gray-400">離線模式</span>
+            </div>
+            <button onclick="toggleConfig()" class="text-gray-500 hover:text-blue-600">
+                <i class="fa-solid fa-gear text-xl"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        
+        <!-- API Key Modal (Modified) -->
+        <div id="apiKeyModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+            <div class="relative p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+                <div class="mt-3 text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                        <i class="fa-solid fa-key text-blue-600"></i>
+                    </div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">API 設定 (選填)</h3>
+                    <div class="mt-2 px-7 py-3">
+                        <p class="text-sm text-gray-500 mb-4">
+                            如想使用進階 AI 出題功能，請輸入 Google Gemini API Key。<br>
+                            <strong>不想設定？直接點擊「使用離線模式」即可。</strong>
+                        </p>
+                        <input type="password" id="apiKeyInput" placeholder="Paste API Key here (Optional)" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    </div>
+                    <div class="flex gap-2 px-4 py-3">
+                        <button id="useOfflineBtn" class="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300">
+                            使用離線模式
+                        </button>
+                        <button id="saveApiKeyBtn" class="px-4 py-2 bg-blue-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700">
+                            儲存 Key
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Panel -->
+        <div id="configPanel" class="bg-white rounded-xl shadow-lg p-6 mb-8 transform transition-all duration-500">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                    <i class="fa-solid fa-sliders mr-2 text-yellow-500"></i> 題目設定
+                </h2>
+                <button onclick="showApiKeyModal()" class="text-xs text-blue-500 hover:underline">
+                    切換模式
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Grade Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">年級 (Grade)</label>
+                    <select id="gradeSelect" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="P1">小一 (P1)</option>
+                        <option value="P2">小二 (P2)</option>
+                        <option value="P3">小三 (P3)</option>
+                        <option value="P4">小四 (P4)</option>
+                        <option value="P5">小五 (P5)</option>
+                        <option value="P6">小六 (P6)</option>
+                    </select>
+                </div>
+
+                <!-- Topic Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">課題 (Topic)</label>
+                    <select id="topicSelect" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="basic_arithmetic">四則運算 (Numbers)</option>
+                        <option value="area_perimeter">圖形與空間 (Shape & Space)</option>
+                        <option value="algebra">代數 (Algebra)</option>
+                        <option value="fractions">分數 (Fractions)</option>
+                        <option value="percentage">百分比 (Percentage)</option>
+                    </select>
+                </div>
+
+                <!-- Question Type -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">題型 (Type)</label>
+                    <select id="typeSelect" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="mc">多項選擇題 (MC)</option>
+                        <option value="fill_in_blanks">填充題 (Fill in the Blanks)</option>
+                        <option value="calculation">運算題 (Calculation)</option>
+                        <option value="matching">配對題 (Matching)</option>
+                        <option value="open_ended">開放式問題 (Open-ended)</option>
+                    </select>
+                </div>
+
+                <!-- Difficulty -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">難度 (Difficulty)</label>
+                    <select id="difficultySelect" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2 border">
+                        <option value="easy">基礎 (Easy)</option>
+                        <option value="medium" selected>中等 (Medium)</option>
+                        <option value="hard">進階/挑戰 (Hard)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button onclick="startGeneration()" id="generateBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg transform transition active:scale-95 flex items-center">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> 開始出題
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingArea" class="hidden flex-col items-center justify-center py-12">
+            <div class="loader mb-4"></div>
+            <p id="loadingText" class="text-gray-600 font-medium animate-pulse">正在生成題目...</p>
+        </div>
+
+        <!-- Question Display Area -->
+        <div id="questionsContainer" class="space-y-6">
+            <!-- Questions will be injected here -->
+        </div>
+
+    </main>
+
+    <!-- Templates (Hidden) -->
+    <template id="mcTemplate">
+        <div class="question-card bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 relative">
+            <div class="flex justify-between items-start mb-4">
+                <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">選擇題</span>
+                <span class="question-number text-gray-400 font-bold text-xl">#1</span>
+            </div>
+            <p class="question-text text-lg text-gray-800 font-medium mb-6"></p>
+            <div class="options-grid grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <!-- Options injected via JS -->
+            </div>
+            <div class="feedback-area hidden mt-4 p-4 rounded-lg bg-gray-50"></div>
+            <button class="check-btn mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full md:w-auto">
+                核對答案
+            </button>
+        </div>
+    </template>
+
+    <template id="inputTemplate">
+        <div class="question-card bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500 relative">
+            <div class="flex justify-between items-start mb-4">
+                <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">填充/運算</span>
+                <span class="question-number text-gray-400 font-bold text-xl">#1</span>
+            </div>
+            <p class="question-text text-lg text-gray-800 font-medium mb-6"></p>
+            <div class="mb-4">
+                <input type="text" placeholder="請在此輸入答案" class="user-input w-full md:w-1/2 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-300 focus:outline-none">
+            </div>
+            <div class="feedback-area hidden mt-4 p-4 rounded-lg bg-gray-50"></div>
+            <button class="check-btn mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full md:w-auto">
+                核對答案
+            </button>
+        </div>
+    </template>
+
+    <template id="matchingTemplate">
+        <div class="question-card bg-white rounded-xl shadow-md p-6 border-l-4 border-orange-500 relative">
+            <div class="flex justify-between items-start mb-4">
+                <span class="bg-orange-100 text-orange-800 text-xs font-semibold px-2.5 py-0.5 rounded">配對題</span>
+                <span class="question-number text-gray-400 font-bold text-xl">#1</span>
+            </div>
+            <p class="question-text text-lg text-gray-800 font-medium mb-6"></p>
+            <div class="matching-container grid grid-cols-1 gap-4 mb-4">
+                <!-- Matching items injected via JS -->
+            </div>
+            <div class="feedback-area hidden mt-4 p-4 rounded-lg bg-gray-50"></div>
+            <button class="check-btn mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full md:w-auto">
+                核對答案
+            </button>
+        </div>
+    </template>
+
+    <template id="openEndedTemplate">
+        <div class="question-card bg-white rounded-xl shadow-md p-6 border-l-4 border-pink-500 relative">
+            <div class="flex justify-between items-start mb-4">
+                <span class="bg-pink-100 text-pink-800 text-xs font-semibold px-2.5 py-0.5 rounded">開放式思考</span>
+                <span class="question-number text-gray-400 font-bold text-xl">#1</span>
+            </div>
+            <p class="question-text text-lg text-gray-800 font-medium mb-6"></p>
+            <textarea rows="4" class="user-input w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-300 focus:outline-none resize-none" placeholder="請寫下你的解題步驟或答案..."></textarea>
+            
+            <div class="feedback-area hidden mt-4 p-4 rounded-lg bg-gray-50 text-sm"></div>
+            
+            <div class="flex gap-2 mt-4">
+                <button class="ai-grade-btn hidden bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded items-center">
+                    <i class="fa-solid fa-robot mr-2"></i> AI 評分
+                </button>
+                <button class="show-ref-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                    顯示參考答案
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        // State Management
+        let API_KEY = "";
+        let USE_AI = false;
+        
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedKey = localStorage.getItem('gemini_api_key');
+            if (storedKey) {
+                API_KEY = storedKey;
+                setMode(true);
+            } else {
+                document.getElementById('apiKeyModal').classList.remove('hidden');
+                setMode(false);
+            }
+        });
+
+        function showApiKeyModal() {
+            document.getElementById('apiKeyModal').classList.remove('hidden');
+        }
+
+        function setMode(isAI) {
+            USE_AI = isAI;
+            const badge = document.getElementById('modeBadge');
+            if(isAI) {
+                badge.textContent = "AI 模式";
+                badge.className = "bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-blue-400";
+            } else {
+                badge.textContent = "離線模式";
+                badge.className = "bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-gray-400";
+            }
+        }
+
+        document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+            const input = document.getElementById('apiKeyInput').value.trim();
+            if (input) {
+                API_KEY = input;
+                localStorage.setItem('gemini_api_key', input);
+                document.getElementById('apiKeyModal').classList.add('hidden');
+                setMode(true);
+                alert("已切換至 AI 模式！");
+            } else {
+                alert('請輸入有效的 API Key');
+            }
+        });
+
+        document.getElementById('useOfflineBtn').addEventListener('click', () => {
+            document.getElementById('apiKeyModal').classList.add('hidden');
+            setMode(false);
+        });
+
+        function toggleConfig() {
+            const panel = document.getElementById('configPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        // --- Main Generation Flow ---
+
+        function startGeneration() {
+            const grade = document.getElementById('gradeSelect').value;
+            const topic = document.getElementById('topicSelect').value;
+            const type = document.getElementById('typeSelect').value;
+            const difficulty = document.getElementById('difficultySelect').value;
+
+            document.getElementById('loadingArea').classList.remove('hidden');
+            document.getElementById('questionsContainer').innerHTML = '';
+            document.getElementById('generateBtn').disabled = true;
+            document.getElementById('generateBtn').classList.add('opacity-50', 'cursor-not-allowed');
+
+            if (USE_AI && API_KEY) {
+                document.getElementById('loadingText').textContent = "AI 老師正在思考題目中...";
+                generateWithAI(grade, topic, type, difficulty);
+            } else {
+                document.getElementById('loadingText').textContent = "正在生成題目 (離線)...";
+                setTimeout(() => {
+                    const questions = LocalMathEngine.generate(3, grade, topic, type, difficulty);
+                    renderQuestions(questions);
+                    document.getElementById('loadingArea').classList.add('hidden');
+                    document.getElementById('generateBtn').disabled = false;
+                    document.getElementById('generateBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+                }, 600);
+            }
+        }
+
+        // --- Local Math Engine (Updated for HK Curriculum) ---
+        
+        const LocalMathEngine = {
+            randomInt: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
+            
+            generate: function(count, grade, topic, type, diff) {
+                const questions = [];
+                for(let i=0; i<count; i++) {
+                    questions.push(this.createQuestion(grade, topic, type, diff));
+                }
+                return questions;
+            },
+
+            createQuestion: function(grade, topic, type, diff) {
+                let qObj = {
+                    id: Date.now() + Math.random(),
+                    type: type,
+                    question: "",
+                    options: [],
+                    matching_pairs: [],
+                    answer: "",
+                    explanation: ""
+                };
+
+                let data = {};
+                
+                // Route based on Topic, passing Grade context
+                switch(topic) {
+                    case 'area_perimeter': data = this.genAreaPerimeter(diff, grade); break;
+                    case 'algebra': data = this.genAlgebra(diff, grade); break;
+                    case 'percentage': data = this.genPercentage(diff, grade); break;
+                    case 'fractions': data = this.genFractions(diff, grade); break;
+                    default: data = this.genBasicArithmetic(diff, grade); break;
+                }
+
+                // If generator returned null (topic not suitable for grade), fallback to Basic Arithmetic
+                if(!data) {
+                    data = this.genBasicArithmetic(diff, grade);
+                    data.questionText = `(此課題不適用於 ${grade}，已切換至基礎運算) ` + data.questionText;
+                }
+
+                if (type === 'matching') {
+                    let pairs = [];
+                    for(let k=0; k<3; k++) {
+                        // Regenerate sub-items
+                        let subData;
+                        switch(topic) {
+                            case 'area_perimeter': subData = this.genAreaPerimeter(diff, grade); break;
+                            case 'algebra': subData = this.genAlgebra(diff, grade); break;
+                            case 'percentage': subData = this.genPercentage(diff, grade); break;
+                            case 'fractions': subData = this.genFractions(diff, grade); break;
+                            default: subData = this.genBasicArithmetic(diff, grade); break;
+                        }
+                        if(!subData) subData = this.genBasicArithmetic(diff, grade);
+                        pairs.push({ left: subData.questionText, right: subData.answerVal.toString() });
+                    }
+                    qObj.question = "請將下列算式與正確答案配對：";
+                    qObj.matching_pairs = pairs;
+                    qObj.answer = "Matching Logic"; 
+                } else if (type === 'open_ended') {
+                    qObj.question = `(應用題) ${data.questionText}。請列式計算。`;
+                    qObj.answer = data.answerVal.toString();
+                    qObj.explanation = `計算過程：${data.questionText} = ${data.answerVal}`;
+                } else {
+                    qObj.question = `計算：${data.questionText} = ?`;
+                    qObj.answer = data.answerVal.toString();
+                    qObj.explanation = `正確答案是 ${data.answerVal}。`;
+
+                    if (type === 'mc') {
+                        let correct = parseFloat(data.answerVal);
+                        let options = new Set();
+                        options.add(data.answerVal.toString());
+                        
+                        let attempts = 0;
+                        while(options.size < 4 && attempts < 20) {
+                            attempts++;
+                            let offset = this.randomInt(1, 10);
+                            if (Math.random() > 0.5) offset *= -1;
+                            
+                            // Adjust distractor logic based on answer type
+                            let wrong;
+                            if (topic === 'fractions') {
+                                // Simple string manipulation for unique distractors in simple mode
+                                wrong = (correct + offset).toString(); 
+                            } else {
+                                wrong = correct + offset;
+                                if(wrong < 0) wrong = Math.abs(wrong) + 1;
+                            }
+                            options.add(wrong.toString());
+                        }
+                        qObj.options = Array.from(options).sort(() => Math.random() - 0.5);
+                    }
+                }
+                return qObj;
+            },
+
+            // --- Updated Topic Generators with Grade Logic ---
+
+            genBasicArithmetic: function(diff, grade) {
+                let op, a, b, ans;
+                const gNum = parseInt(grade.replace('P', '')); // 1-6
+
+                // Determine Allowed Operations
+                let ops = ['+', '-'];
+                if (gNum >= 2) ops = ['+', '-', '×']; // P2 starts multiplication
+                if (gNum >= 3) ops = ['+', '-', '×', '÷']; // P3 starts division
+
+                // Filter ops by difficulty if needed (e.g. Easy P3 might just be + -)
+                if (diff === 'easy' && gNum === 2) ops = ['+', '-']; 
+
+                op = ops[this.randomInt(0, ops.length-1)];
+
+                // Number Ranges
+                let max = 20;
+                if (gNum === 1) max = diff === 'hard' ? 100 : 20;
+                else if (gNum === 2) max = diff === 'easy' ? 100 : 1000;
+                else if (gNum >= 3) max = diff === 'easy' ? 500 : 10000;
+
+                // Specific Logic
+                if (op === '×') {
+                    // P2: Multiplication table (1-9)
+                    let m1 = gNum === 2 ? 9 : 20;
+                    let m2 = gNum === 2 ? 9 : 20;
+                    if(gNum >= 4) { m1 = 100; m2 = 10; } // Multi-digit
+                    a = this.randomInt(2, m1);
+                    b = this.randomInt(2, m2);
+                    ans = a * b;
+                } else if (op === '÷') {
+                    // Result should be integer
+                    let divMax = gNum === 3 ? 10 : 20; // Divisor size
+                    b = this.randomInt(2, divMax);
+                    ans = this.randomInt(2, divMax * 2); 
+                    a = ans * b; // Dividend
+                } else {
+                    // Add/Sub
+                    a = this.randomInt(1, max);
+                    b = this.randomInt(1, max);
+                    if (op === '-') {
+                        if (a < b) [a, b] = [b, a];
+                        ans = a - b;
+                    } else {
+                        ans = a + b;
+                    }
+                }
+
+                return { questionText: `${a} ${op} ${b}`, answerVal: ans };
+            },
+
+            genAreaPerimeter: function(diff, grade) {
+                const gNum = parseInt(grade.replace('P', ''));
+
+                // P1-P3 don't really do "Area formula", mainly Length or Counting blocks
+                // Fallback to simpler concepts or reject
+                if (gNum < 4) {
+                    // Length question for P1-P3
+                    let cm = this.randomInt(100, 500);
+                    let m = Math.floor(cm / 100);
+                    let rem = cm % 100;
+                    if(gNum === 1) return { questionText: `比較長度: ${this.randomInt(1,10)}cm 與 ${this.randomInt(11,20)}cm，較長的是`, answerVal: `${this.randomInt(11,20)}cm` }; // Simplification logic
+                    
+                    return { 
+                        questionText: `${cm}cm 等於多少 m 和 cm (格式: Xm Ycm)`, 
+                        answerVal: `${m}m ${rem}cm` 
+                    }; 
+                }
+
+                let w = this.randomInt(2, 12);
+                let h = this.randomInt(2, 12);
+                
+                // P4: Rect/Square Area/Perimeter
+                if (gNum === 4) {
+                    let isArea = Math.random() > 0.5;
+                    if (isArea) return { questionText: `長方形 (長${h}cm, 闊${w}cm) 的面積`, answerVal: w * h };
+                    else return { questionText: `長方形 (長${h}cm, 闊${w}cm) 的周界`, answerVal: (w + h) * 2 };
+                }
+
+                // P5: Triangle / Parallelogram
+                if (gNum === 5) {
+                    let type = Math.random() > 0.5 ? 'triangle' : 'para';
+                    if (type === 'triangle') {
+                        // Area = (b*h)/2. Ensure even product.
+                        if ((w * h) % 2 !== 0) w += 1; 
+                        return { questionText: `三角形 (底${w}cm, 高${h}cm) 的面積`, answerVal: (w * h) / 2 };
+                    } else {
+                        return { questionText: `平行四邊形 (底${w}cm, 高${h}cm) 的面積`, answerVal: w * h };
+                    }
+                }
+
+                // P6: Volume (Cuboid) or Circle (Simplify to Cuboid volume for text-based)
+                // Volume
+                let d = this.randomInt(2, 10);
+                return { questionText: `長方體 (長${h}cm, 闊${w}cm, 高${d}cm) 的體積`, answerVal: w * h * d };
+            },
+
+            genAlgebra: function(diff, grade) {
+                const gNum = parseInt(grade.replace('P', ''));
+                
+                let x = this.randomInt(1, 15);
+                let a = this.randomInt(1, 15);
+                
+                // P1-P4: Pre-algebra (Missing number)
+                if (gNum < 5) {
+                    let ans = x + a;
+                    return { questionText: `${a} + ( ? ) = ${ans}`, answerVal: x };
+                }
+
+                // P5-P6: Simple Equations
+                let op = Math.random() > 0.5 ? '+' : '-';
+                if(op === '+') {
+                    let sum = x + a;
+                    return { questionText: `解方程: y + ${a} = ${sum}，y`, answerVal: x };
+                } else {
+                    let diffVal = x; 
+                    let total = x + a; // total - a = x
+                    return { questionText: `解方程: y - ${a} = ${diffVal}，y`, answerVal: total };
+                }
+            },
+
+            genPercentage: function(diff, grade) {
+                const gNum = parseInt(grade.replace('P', ''));
+                // Only P6 (maybe late P5)
+                if (gNum < 6) return null; // Fallback trigger
+
+                let base = this.randomInt(1, 20) * 10; 
+                let percent = this.randomInt(1, 9) * 10;
+                
+                return {
+                    questionText: `${base} 的 ${percent}%`,
+                    answerVal: base * (percent/100)
+                };
+            },
+
+            genFractions: function(diff, grade) {
+                const gNum = parseInt(grade.replace('P', ''));
+                if (gNum < 3) return null; // Fallback
+
+                let den = this.randomInt(2, 12);
+                
+                // P3/P4: Same Denominator add/sub
+                if (gNum <= 4) {
+                    let n1 = this.randomInt(1, den-1);
+                    let n2 = this.randomInt(1, den-n1);
+                    return { questionText: `${n1}/${den} + ${n2}/${den}`, answerVal: `${n1+n2}/${den}` };
+                }
+                
+                // P5/P6: Different Denominator (Simple: den2 is multiple of den1)
+                // e.g., 1/2 + 1/4
+                let factor = this.randomInt(2, 4);
+                let den2 = den * factor;
+                let n1 = 1; 
+                let n2 = 1;
+                // 1/den + 1/(den*factor) = factor/(den*factor) + 1/(den*factor)
+                let ansTop = factor + 1;
+                return { questionText: `1/${den} + 1/${den2}`, answerVal: `${ansTop}/${den2}` };
+            }
+        };
+
+        // --- Gemini AI Logic (Existing) ---
+
+        async function generateWithAI(grade, topic, type, difficulty) {
+            const systemPrompt = `You are a friendly Mathematics Teacher for Hong Kong primary students.
+            Output JSON only. Language: Traditional Chinese.
+            Task: Generate 3 unique questions suitable for the Hong Kong Curriculum.
+            Params: Grade ${grade}, Topic ${topic}, Type ${type}, Diff ${difficulty}.
+            JSON Schema: { "questions": [ { "id": 1, "type": "${type}", "question": "...", "options": ["..."] (if MC), "matching_pairs": [{"left":"A","right":"B"}] (if matching), "answer": "...", "explanation": "..." } ] }`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+
+                let rawText = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+                const parsedData = JSON.parse(rawText);
+                renderQuestions(parsedData.questions);
+
+            } catch (error) {
+                console.error(error);
+                alert(`AI 出錯 (${error.message})，自動切換至離線模式。`);
+                setMode(false);
+                startGeneration(); 
+            } finally {
+                document.getElementById('loadingArea').classList.add('hidden');
+                document.getElementById('generateBtn').disabled = false;
+                document.getElementById('generateBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        // --- Rendering Logic (Shared) ---
+
+        function renderQuestions(questions) {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+
+            if(!questions || questions.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500">無法生成題目。</p>';
+                return;
+            }
+
+            questions.forEach((q, index) => {
+                let clone;
+                if (q.type === 'mc') {
+                    clone = document.getElementById('mcTemplate').content.cloneNode(true);
+                    setupMC(clone, q, index);
+                } else if (q.type === 'matching') {
+                    clone = document.getElementById('matchingTemplate').content.cloneNode(true);
+                    setupMatching(clone, q, index);
+                } else if (q.type === 'open_ended') {
+                    clone = document.getElementById('openEndedTemplate').content.cloneNode(true);
+                    setupOpenEnded(clone, q, index);
+                } else {
+                    clone = document.getElementById('inputTemplate').content.cloneNode(true);
+                    setupInput(clone, q, index);
+                }
+                container.appendChild(clone);
+            });
+        }
+
+        // --- Interaction Handlers (Shared) ---
+
+        function setupMC(clone, q, index) {
+            clone.querySelector('.question-number').textContent = `#${index + 1}`;
+            clone.querySelector('.question-text').textContent = q.question;
+            const grid = clone.querySelector('.options-grid');
+            
+            q.options.forEach((opt) => {
+                const div = document.createElement('div');
+                div.className = 'option-item border rounded-lg p-3 cursor-pointer hover:bg-blue-50 transition flex items-center';
+                div.innerHTML = `<input type="radio" name="q_${index}" value="${opt}" class="mr-3 h-4 w-4 text-blue-600"><span>${opt}</span>`;
+                div.addEventListener('click', () => {
+                    div.querySelector('input').checked = true;
+                    grid.querySelectorAll('.option-item').forEach(el => el.classList.remove('border-blue-500', 'bg-blue-50'));
+                    div.classList.add('border-blue-500', 'bg-blue-50');
+                });
+                grid.appendChild(div);
+            });
+
+            clone.querySelector('.check-btn').addEventListener('click', (e) => {
+                const selected = document.querySelector(`input[name="q_${index}"]:checked`);
+                if (!selected) return alert('請選擇一個答案！');
+                const isCorrect = selected.value.toString() === q.answer.toString() || selected.value.includes(q.answer);
+                showFeedback(e.target.previousElementSibling, isCorrect, q.explanation, q.answer);
+                if(isCorrect) triggerConfetti(e.target);
+            });
+        }
+
+        function setupInput(clone, q, index) {
+            clone.querySelector('.question-number').textContent = `#${index + 1}`;
+            clone.querySelector('.question-text').textContent = q.question;
+            clone.querySelector('.check-btn').addEventListener('click', (e) => {
+                const val = e.target.closest('.question-card').querySelector('input').value.trim();
+                if (!val) return alert('請輸入答案！');
+                let isCorrect = val == q.answer; 
+                showFeedback(e.target.previousElementSibling, isCorrect, q.explanation, q.answer);
+                if(isCorrect) triggerConfetti(e.target);
+            });
+        }
+
+        function setupMatching(clone, q, index) {
+            clone.querySelector('.question-number').textContent = `#${index + 1}`;
+            clone.querySelector('.question-text').textContent = q.question;
+            const container = clone.querySelector('.matching-container');
+            const rightOptions = [...q.matching_pairs.map(p => p.right)].sort(() => Math.random() - 0.5);
+
+            q.matching_pairs.forEach((pair) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between bg-gray-50 p-3 rounded';
+                
+                const select = document.createElement('select');
+                select.className = 'w-5/12 border rounded p-1 match-select';
+                select.dataset.correct = pair.right;
+                select.innerHTML = '<option value="">請選擇</option>' + rightOptions.map(o => `<option value="${o}">${o}</option>`).join('');
+
+                row.innerHTML = `<span class="font-bold text-gray-700 w-5/12">${pair.left}</span><i class="fa-solid fa-arrow-right text-gray-400"></i>`;
+                row.appendChild(select);
+                container.appendChild(row);
+            });
+
+            clone.querySelector('.check-btn').addEventListener('click', (e) => {
+                const selects = e.target.closest('.question-card').querySelectorAll('.match-select');
+                let allCorrect = true;
+                selects.forEach(sel => {
+                    const isRight = sel.value == sel.dataset.correct;
+                    sel.classList.toggle('border-red-500', !isRight);
+                    sel.classList.toggle('bg-red-50', !isRight);
+                    sel.classList.toggle('border-green-500', isRight);
+                    sel.classList.toggle('bg-green-50', isRight);
+                    if(!isRight) allCorrect = false;
+                });
+                showFeedback(e.target.previousElementSibling, allCorrect, allCorrect ? "全對了！" : "有些配對不正確。", null);
+                if(allCorrect) triggerConfetti(e.target);
+            });
+        }
+
+        function setupOpenEnded(clone, q, index) {
+            clone.querySelector('.question-number').textContent = `#${index + 1}`;
+            clone.querySelector('.question-text').textContent = q.question;
+            const feedback = clone.querySelector('.feedback-area');
+            const aiBtn = clone.querySelector('.ai-grade-btn');
+
+            if(!USE_AI) aiBtn.classList.add('hidden');
+            else aiBtn.classList.remove('hidden');
+
+            clone.querySelector('.show-ref-btn').addEventListener('click', () => {
+                feedback.classList.remove('hidden');
+                feedback.innerHTML = `<div class="text-gray-700"><strong class="text-blue-600 block mb-1">參考答案：</strong>${q.answer}<hr class="my-2"><strong class="text-green-600 block mb-1">解釋：</strong>${q.explanation}</div>`;
+            });
+
+            aiBtn.addEventListener('click', async (e) => {
+               alert("離線模式不支援 AI 評分，請參考標準答案。");
+            });
+        }
+
+        function showFeedback(el, isCorrect, text, ans) {
+            el.classList.remove('hidden', 'bg-red-50', 'bg-green-50', 'text-red-800', 'text-green-800');
+            el.classList.add(isCorrect ? 'bg-green-50' : 'bg-red-50', isCorrect ? 'text-green-800' : 'text-red-800');
+            el.innerHTML = `<div class="flex items-center mb-2"><i class="fa-solid fa-${isCorrect?'check':'times'}-circle text-xl mr-2"></i> <strong>${isCorrect?'答對了！':'加油！'}</strong></div><p>${text}</p>${!isCorrect && ans ? `<p class="mt-2 font-bold">正確答案：${ans}</p>` : ''}`;
+        }
+
+        function triggerConfetti(btn) {
+            for (let i = 0; i < 30; i++) {
+                const conf = document.createElement('div');
+                conf.classList.add('confetti');
+                conf.style.left = (btn.getBoundingClientRect().left + Math.random() * btn.offsetWidth) + 'px';
+                conf.style.top = btn.getBoundingClientRect().top + 'px';
+                conf.style.backgroundColor = ['#ff0000', '#00ff00', '#0000ff', '#ffff00'][Math.floor(Math.random() * 4)];
+                conf.style.animationDuration = (Math.random() + 1) + 's';
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), 2000);
+            }
+        }
+    </script>
+</body>
+</html>
