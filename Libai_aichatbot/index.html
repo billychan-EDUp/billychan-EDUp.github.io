@@ -331,6 +331,7 @@
         let currentApiKey = defaultApiKey;
         let isOfflineMode = false;
         let inputLang = 'zh-TW'; // Default Mandarin 'zh-TW', Cantonese 'yue-Hant-HK'
+        let isSoundOn = true; // DEFAULT ON for Auto-play
         
         let genAI = new GoogleGenerativeAI(currentApiKey);
         let model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-09-2025" });
@@ -366,7 +367,6 @@
         // --- State ---
         let isLoading = false;
         let isRecording = false;
-        let isSoundOn = false;
         let recognition = null;
         let synthesis = window.speechSynthesis;
         let voices = [];
@@ -613,6 +613,7 @@
 
             const fallbackVoice = voices.find(v => v.lang === 'zh-TW') || 
                                   voices.find(v => v.lang.includes('zh-TW')) ||
+                                  voices.find(v => v.lang.includes('zh-HK')) || 
                                   voices.find(v => v.lang.includes('zh'));
             
             if (targetVoice) {
@@ -630,6 +631,14 @@
         // --- Initial Setup ---
         initSpeechRecognition();
         updateSoundUI();
+        
+        // Add a one-time click listener to resume AudioContext if browser suspended it
+        document.body.addEventListener('click', () => {
+            if (synthesis.paused) {
+                synthesis.resume();
+            }
+        }, { once: true });
+
 
         // --- Core Functions ---
 
@@ -728,6 +737,7 @@
                 const modelMsgEl = createMessageElement('model', responseText);
                 chatContainer.appendChild(modelMsgEl);
 
+                // Auto-play sound if enabled
                 if (isSoundOn) {
                     speakText(responseText);
                 }
