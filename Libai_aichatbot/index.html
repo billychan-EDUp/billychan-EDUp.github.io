@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>李白 歷史導師</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['"Noto Serif TC"', 'serif'],
+                        sans: ['system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        'paper': '#f3f0e9',
+                        'paper-light': '#faf8f2',
+                        'ink': '#000000',
+                        'seal': '#8a2be2', 
+                        'red-seal': '#991b1b',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f3f0e9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d6d3cd;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a8a29e;
+        }
+        
+        .writing-vertical {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+        }
+
+        /* Animation for loading */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8,0,1,1); }
+            50% { transform: translateY(0); animation-timing-function: cubic-bezier(0,0,0.2,1); }
+        }
+        .animate-bounce-custom {
+            animation: bounce 1s infinite;
+        }
+
+        .bg-decor {
+            background-color: #f3f0e9;
+        }
+
+        /* Microphone Wave Animation */
+        .mic-wave {
+            display: inline-block;
+            position: relative;
+        }
+        .mic-wave::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(220, 38, 38, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            animation: ripple 1.5s infinite;
+            z-index: -1;
+        }
+        @keyframes ripple {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+        }
+
+        /* Sharper Text Class */
+        .sharp-text {
+            -webkit-font-smoothing: subpixel-antialiased;
+            -moz-osx-font-smoothing: auto;
+            color: #000000;
+            text-shadow: 0 0 1px rgba(0,0,0,0.05);
+        }
+
+        /* Modal Transitions */
+        .modal {
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="bg-paper text-ink font-sans h-screen flex flex-col overflow-hidden relative">
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl border-2 border-stone-800 transform transition-transform scale-95 duration-200" id="settings-content">
+            <div class="flex justify-between items-center mb-6 border-b border-stone-200 pb-4">
+                <h2 class="text-2xl font-bold font-serif text-ink flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    系統設定
+                </h2>
+                <button id="close-settings" class="text-stone-400 hover:text-red-700 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Input Language Setting -->
+                <div>
+                    <label class="block text-sm font-bold text-stone-600 mb-2 font-serif">語音輸入語言 (錄音)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="lang-tw" class="py-2 px-4 rounded-md font-bold text-sm transition-all border border-stone-200 bg-white text-ink shadow-sm">
+                            國語 (Mandarin)
+                        </button>
+                        <button id="lang-hk" class="py-2 px-4 rounded-md font-bold text-sm transition-all border border-stone-200 text-stone-500 hover:bg-stone-100">
+                            廣東話 (Cantonese)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mode Toggle -->
+                <div>
+                    <label class="block text-sm font-bold text-stone-600 mb-2 font-serif">運作模式</label>
+                    <div class="flex gap-2 bg-stone-100 p-1.5 rounded-lg">
+                        <button id="mode-api" class="flex-1 py-2 px-4 rounded-md font-bold text-sm transition-all shadow-sm bg-white text-ink border border-stone-200">
+                            🟢 連線 (API Mode)
+                        </button>
+                        <button id="mode-offline" class="flex-1 py-2 px-4 rounded-md font-bold text-sm transition-all text-stone-500 hover:bg-stone-200">
+                            🔴 離線 (Offline)
+                        </button>
+                    </div>
+                    <p class="text-xs text-stone-500 mt-2 ml-1" id="mode-desc">目前使用 Google AI 模型進行智慧生成。</p>
+                </div>
+
+                <!-- API Key Input -->
+                <div id="api-key-section">
+                    <label class="block text-sm font-bold text-stone-600 mb-2 font-serif">自訂 API Key (選填)</label>
+                    <input type="password" id="custom-api-key" placeholder="輸入您的 Gemini API Key" 
+                        class="w-full px-4 py-2 rounded-lg border-2 border-stone-300 focus:border-stone-800 bg-transparent text-ink placeholder-stone-400 font-sans outline-none transition-colors">
+                    <p class="text-xs text-stone-400 mt-1 ml-1">若留空則使用系統預設金鑰。</p>
+                </div>
+
+                <div class="pt-4 border-t border-stone-200">
+                    <button id="save-settings" class="w-full bg-stone-800 text-white font-bold py-3 rounded-xl hover:bg-black transition-transform active:scale-95 shadow-lg">
+                        保存設定
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout: Sidebar (Character) + Chat Area -->
+    <div class="flex flex-1 h-full z-10">
+        
+        <!-- Left Side: Character Portrait (Desktop) -->
+        <div class="hidden md:flex md:w-1/3 lg:w-1/4 flex-col bg-stone-200 border-r border-stone-300 relative">
+            <!-- Logo Area -->
+            <div class="absolute top-4 left-4 z-20">
+                <img src="logo.png" onerror="this.src='https://placehold.co/150x50/8b4513/ffffff?text=Company+Logo'" alt="Company Logo" class="h-12 w-auto object-contain drop-shadow-md">
+            </div>
+
+            <!-- Character Image Placeholder -->
+            <div class="flex-1 w-full h-full relative overflow-hidden bg-stone-300">
+                 <!-- Image of Li Bai -->
+                 <img src="char.png" onerror="this.src='https://placehold.co/400x800/e8e4d9/2d2a26?text=Li+Bai+Portrait'" alt="李白立繪" class="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-[90%] w-auto object-cover object-bottom drop-shadow-2xl transition-transform hover:scale-105 duration-700">
+                 
+                 <!-- Character Name Overlay -->
+                 <div class="absolute bottom-10 right-4 writing-vertical text-4xl font-serif font-bold text-ink opacity-90 select-none drop-shadow-md">
+                     李太白
+                 </div>
+                 <div class="absolute bottom-10 right-12 writing-vertical text-lg font-serif text-red-seal opacity-90 select-none">
+                     青蓮居士
+                 </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Chat Interface -->
+        <div class="flex-1 flex flex-col h-full bg-paper relative">
+            
+            <!-- Mobile Header (Visible only on mobile) -->
+            <div class="md:hidden bg-[#2d2a26] text-paper p-3 flex items-center justify-between shadow-md z-30">
+                <div class="flex items-center gap-2">
+                    <button id="mobile-settings-btn" class="p-1 text-stone-400 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </button>
+                    <span class="font-serif font-bold text-lg">李白 歷史導師</span>
+                    <span id="mobile-status-dot" class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="mobile-sound-toggle" class="p-2 rounded-full hover:bg-stone-700 transition-colors text-stone-400">
+                        <!-- Icons inserted by JS -->
+                    </button>
+                    <!-- Small avatar for mobile -->
+                    <div class="w-10 h-10 rounded-full border-2 border-red-seal overflow-hidden bg-stone-300">
+                        <img src="char.png" onerror="this.src='https://placehold.co/100x100/e8e4d9/2d2a26?text=Li'" alt="李白" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desktop Header Info -->
+            <header class="hidden md:flex bg-white/90 backdrop-blur-none p-4 border-b border-stone-300 justify-between items-center z-30 shadow-sm">
+                 <div class="flex items-center gap-4">
+                     <div>
+                         <h1 class="text-2xl font-bold font-serif text-black tracking-widest sharp-text">歷史導師對話錄</h1>
+                         <p class="text-stone-600 text-xs font-medium">與千古詩仙暢談古今</p>
+                     </div>
+                     <!-- Status Badge -->
+                     <div id="status-badge" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 border border-green-200 text-green-800 text-xs font-bold shadow-sm transition-colors cursor-pointer" title="點擊開啟設定">
+                         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                         連線模式
+                     </div>
+                 </div>
+                 <div class="flex gap-4 text-sm text-stone-600 font-serif items-center font-bold">
+                    
+                    <!-- Settings Button -->
+                    <button id="desktop-settings-btn" class="p-2 rounded-full hover:bg-stone-100 text-stone-500 transition-colors" title="系統設定">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </button>
+
+                    <div class="w-px h-6 bg-stone-300 mx-1"></div>
+
+                    <!-- Sound Toggle Button -->
+                    <button id="desktop-sound-toggle" class="flex items-center gap-1 px-3 py-1 rounded-full border border-stone-300 hover:bg-stone-100 transition-colors text-stone-700">
+                        <span class="icon-container">
+                            <!-- Icon inserted by JS -->
+                        </span>
+                        <span class="status-text">語音：關</span>
+                    </button>
+                 </div>
+            </header>
+
+            <!-- Chat Messages Area -->
+            <main id="chat-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth custom-scrollbar bg-decor pb-32">
+                <!-- Initial Message -->
+                <div class="flex w-full justify-start">
+                    <div class="flex flex-row max-w-[90%] md:max-w-[80%] gap-3">
+                         <!-- Avatar -->
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-[#2d2a26] border-2 border-red-seal flex items-center justify-center text-paper font-serif font-bold shadow-md">
+                            李
+                        </div>
+                        <!-- Bubble -->
+                        <div class="p-5 shadow-md rounded-2xl rounded-tl-none border-l-4 border-l-[#2d2a26] border border-stone-300 bg-paper-light relative group">
+                            <!-- Stamp -->
+                            <div class="absolute -top-3 -right-3 opacity-40 transform rotate-12 pointer-events-none">
+                                <div class="w-12 h-12 border-2 border-red-900 rounded-sm flex items-center justify-center">
+                                    <span class="text-red-900 text-xs font-serif writing-vertical font-bold">太白</span>
+                                </div>
+                            </div>
+                            <!-- Speak Button -->
+                            <button class="speak-msg-btn absolute -right-8 top-0 p-1.5 text-stone-400 hover:text-black opacity-0 group-hover:opacity-100 transition-opacity" title="朗讀此句">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                            </button>
+                            <!-- Text -->
+                            <div class="message-text whitespace-pre-wrap font-serif text-xl leading-relaxed font-bold text-black sharp-text">大鵬一日同風起，扶搖直上九萬里！
+
+吾乃李太白。小友今日前來，可是這歷史長河中有何不解之事？
+且坐下，待吾飲一口酒，為你細細道來。</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="hidden px-4 md:px-8 pb-4">
+                <div class="flex w-full justify-start">
+                    <div class="flex flex-row max-w-[70%] gap-3">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-[#2d2a26] border-2 border-red-seal flex items-center justify-center text-paper font-serif font-bold">李</div>
+                        <div class="bg-stone-100 p-4 rounded-2xl rounded-tl-none border-l-4 border-l-[#2d2a26] border border-stone-200 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-red-800 animate-bounce-custom" fill="currentColor" viewBox="0 0 24 24"><path d="M11 2h2v5h-2V2zm0 15h2v5h-2v-5zm0-10h2v5h-2V7zm-6.5 5h-2v2h2v-2zm15 0h-2v2h2v-2zm-3.5-6.5h-2v2h2v-2zm-8 0h-2v2h2v-2zm-1.8 12.3l-1.4 1.4 1.4 1.4 1.4-1.4-1.4-1.4zm13.6 0l-1.4 1.4 1.4 1.4 1.4-1.4-1.4-1.4z"/></svg>
+                            <span class="text-black font-bold italic text-sm sharp-text">斟酒沉思中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <footer class="bg-white p-4 border-t-2 border-stone-200 shadow-none z-20">
+                <div class="max-w-4xl mx-auto flex gap-3 relative items-end">
+                    
+                    <div class="flex-1 relative group bg-white rounded-xl border-2 border-stone-300 focus-within:border-stone-800 transition-colors shadow-sm flex items-center">
+                        <textarea id="user-input"
+                            placeholder="請問太白先生關於歷史的疑問..."
+                            class="w-full pl-4 pr-12 py-3 bg-transparent resize-none h-[60px] min-h-[60px] max-h-32 focus:ring-0 border-none text-black placeholder-stone-500 font-serif font-bold text-lg leading-relaxed sharp-text"
+                        ></textarea>
+                        
+                        <!-- Mic Button -->
+                        <button id="mic-btn" class="absolute right-2 bottom-2 p-2 rounded-full text-stone-500 hover:text-red-700 hover:bg-stone-100 transition-all z-10" title="語音輸入">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                        </button>
+                    </div>
+
+                    <button id="send-btn"
+                        class="h-[60px] px-8 rounded-xl flex items-center justify-center gap-2 font-bold transition-all duration-300 shadow-sm bg-[#2d2a26] text-white hover:bg-black hover:scale-105 active:scale-95 disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed disabled:transform-none whitespace-nowrap"
+                    >
+                        <span class="hidden md:inline">請賜教</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    </button>
+                </div>
+                <div class="text-center mt-2 text-xs text-stone-500 flex justify-center gap-4 font-bold">
+                    <span>AI 生成內容僅供參考，請以史書為準</span>
+                    <span id="recording-status" class="hidden text-red-700 font-extrabold animate-pulse">● 正在聆聽...</span>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+        // --- Configuration ---
+        const defaultApiKey = ""; // System provided
+        let currentApiKey = defaultApiKey;
+        let isOfflineMode = false;
+        let inputLang = 'zh-TW'; // Default Mandarin 'zh-TW', Cantonese 'yue-Hant-HK'
+        
+        let genAI = new GoogleGenerativeAI(currentApiKey);
+        let model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-09-2025" });
+
+        // --- DOM Elements ---
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const micBtn = document.getElementById('mic-btn');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const recordingStatus = document.getElementById('recording-status');
+        const desktopSoundBtn = document.getElementById('desktop-sound-toggle');
+        const mobileSoundBtn = document.getElementById('mobile-sound-toggle');
+        
+        // Settings Elements
+        const modal = document.getElementById('settings-modal');
+        const openSettingsBtn = document.getElementById('desktop-settings-btn');
+        const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings');
+        const saveSettingsBtn = document.getElementById('save-settings');
+        const modeApiBtn = document.getElementById('mode-api');
+        const modeOfflineBtn = document.getElementById('mode-offline');
+        const customApiKeyInput = document.getElementById('custom-api-key');
+        const statusBadge = document.getElementById('status-badge');
+        const apiKeySection = document.getElementById('api-key-section');
+        const modeDesc = document.getElementById('mode-desc');
+        const mobileStatusDot = document.getElementById('mobile-status-dot');
+        
+        // Language Buttons
+        const langTwBtn = document.getElementById('lang-tw');
+        const langHkBtn = document.getElementById('lang-hk');
+
+        // --- State ---
+        let isLoading = false;
+        let isRecording = false;
+        let isSoundOn = false;
+        let recognition = null;
+        let synthesis = window.speechSynthesis;
+        let voices = [];
+
+        // --- Icons ---
+        const speakerOnIcon = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>`;
+        const speakerOffIcon = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>`;
+
+        // --- Offline Response Logic (Simple DB) ---
+        const offlineDB = [
+            { keywords: ['你好', '在嗎', 'hello', 'hi', '喂', '早晨'], response: '小友有禮了！今日天朗氣清，正好論古談今。' },
+            { keywords: ['李白', '是誰', '名字', '你係邊個'], response: '行不改名，坐不改姓，吾乃李太白是也！' },
+            { keywords: ['酒', '喝', '醉', '飲'], response: '花間一壺酒，獨酌無相親。舉杯邀明月，對影成三人。' },
+            { keywords: ['詩', '作詩', '吟'], response: '床前明月光，疑是地上霜。舉頭望明月，低頭思故鄉。' },
+            { keywords: ['唐朝', '大唐'], response: '憶昔開元全盛日，小邑猶藏萬家室。那般盛世，令人懷念。' },
+            { keywords: ['李世民', '太宗'], response: '唐太宗文武雙全，開創貞觀之治，納諫如流，實乃千古一帝。' },
+            { keywords: ['武則天', '女皇'], response: '武曌氣魄非凡，以女兒身君臨天下，雖有爭議，但治國之才不可小覷。' },
+            { keywords: ['安史之亂', '安祿山'], response: '唉... 漁陽鼙鼓動地來。那是大唐由盛轉衰之時，生靈塗炭，心中甚痛。' },
+            { keywords: ['楊貴妃', '玉環'], response: '雲想衣裳花想容，春風拂檻露華濃。太真妃子之美，傾國傾城，可惜馬嵬坡下一縷芳魂。' }
+        ];
+
+        function getOfflineResponse(text) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const lowerText = text.toLowerCase();
+                    const match = offlineDB.find(entry => entry.keywords.some(k => lowerText.includes(k)));
+                    
+                    if (match) {
+                        resolve(match.response);
+                    } else {
+                        resolve("小友所言甚是深奧（離線模式）。\n吾暫時無法連結天聽，僅能談論些詩詞酒興，或基礎唐朝往事。");
+                    }
+                }, 800);
+            });
+        }
+
+        // --- Settings Logic ---
+        function openModal() {
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('active'), 10);
+            if (isOfflineMode) { setOfflineUI(); } else { setApiUI(); }
+            updateLangUI();
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function setApiUI() {
+            modeApiBtn.className = 'flex-1 py-2 px-4 rounded-md font-bold text-sm transition-all shadow-sm bg-white text-ink border border-stone-200';
+            modeOfflineBtn.className = 'flex-1 py-2 px-4 rounded-md font-bold text-sm transition-all text-stone-500 hover:bg-stone-200 bg-transparent';
+            apiKeySection.classList.remove('opacity-50', 'pointer-events-none');
+            modeDesc.textContent = "目前使用 Google AI 模型進行智慧生成。";
+        }
+
+        function setOfflineUI() {
+            modeOfflineBtn.className = 'flex-1 py-2 px-4 rounded-md font-bold text-sm transition-all shadow-sm bg-white text-ink border border-stone-200';
+            modeApiBtn.className = 'flex-1 py-2 px-4 rounded-md font-bold text-sm transition-all text-stone-500 hover:bg-stone-200 bg-transparent';
+            apiKeySection.classList.add('opacity-50', 'pointer-events-none');
+            modeDesc.textContent = "無須網路，僅能回答預設的詩詞與基礎歷史問題。";
+        }
+
+        function updateLangUI() {
+            if (inputLang === 'zh-TW') {
+                langTwBtn.className = 'py-2 px-4 rounded-md font-bold text-sm transition-all border border-stone-200 bg-white text-ink shadow-sm';
+                langHkBtn.className = 'py-2 px-4 rounded-md font-bold text-sm transition-all border border-stone-200 text-stone-500 hover:bg-stone-100';
+            } else {
+                langHkBtn.className = 'py-2 px-4 rounded-md font-bold text-sm transition-all border border-stone-200 bg-white text-ink shadow-sm';
+                langTwBtn.className = 'py-2 px-4 rounded-md font-bold text-sm transition-all border border-stone-200 text-stone-500 hover:bg-stone-100';
+            }
+        }
+
+        function updateSystemStatus() {
+            if (isOfflineMode) {
+                statusBadge.className = "flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-200 border border-stone-300 text-stone-600 text-xs font-bold shadow-sm transition-colors cursor-pointer";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-stone-500"></span> 離線模式`;
+                mobileStatusDot.className = "w-2 h-2 rounded-full bg-stone-500";
+            } else {
+                statusBadge.className = "flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 border border-green-200 text-green-800 text-xs font-bold shadow-sm transition-colors cursor-pointer";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> 連線模式`;
+                mobileStatusDot.className = "w-2 h-2 rounded-full bg-green-500 animate-pulse";
+            }
+        }
+
+        // --- Event Listeners for Settings ---
+        openSettingsBtn.addEventListener('click', openModal);
+        mobileSettingsBtn.addEventListener('click', openModal);
+        closeSettingsBtn.addEventListener('click', closeModal);
+        statusBadge.addEventListener('click', openModal);
+
+        modeApiBtn.addEventListener('click', () => { setApiUI(); });
+        modeOfflineBtn.addEventListener('click', () => { setOfflineUI(); });
+        
+        langTwBtn.addEventListener('click', () => { inputLang = 'zh-TW'; updateLangUI(); });
+        langHkBtn.addEventListener('click', () => { inputLang = 'yue-Hant-HK'; updateLangUI(); });
+
+        saveSettingsBtn.addEventListener('click', () => {
+            if (modeOfflineBtn.classList.contains('bg-white')) {
+                isOfflineMode = true;
+            } else {
+                isOfflineMode = false;
+                const customKey = customApiKeyInput.value.trim();
+                if (customKey) {
+                    currentApiKey = customKey;
+                    genAI = new GoogleGenerativeAI(currentApiKey);
+                    model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-09-2025" });
+                } else {
+                    if (currentApiKey !== defaultApiKey) {
+                        currentApiKey = defaultApiKey;
+                        genAI = new GoogleGenerativeAI(currentApiKey);
+                        model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-09-2025" });
+                    }
+                }
+            }
+            // Re-init speech with new language
+            initSpeechRecognition();
+            updateSystemStatus();
+            closeModal();
+            const sysMsg = isOfflineMode ? "（已切換至離線模式，僅提供基礎應答）" : "（已連接至雲端 API，恢復智慧對話）";
+            const msgEl = createMessageElement('model', sysMsg);
+            chatContainer.appendChild(msgEl);
+            scrollToBottom();
+        });
+
+        // --- Speech Recognition Setup ---
+        function initSpeechRecognition() {
+            // Stop existing instance if any
+            if(recognition) {
+                try { recognition.stop(); } catch(e){}
+                recognition = null;
+            }
+
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.lang = inputLang; // Use selected language
+                recognition.continuous = false;
+                recognition.interimResults = true;
+
+                recognition.onstart = () => {
+                    isRecording = true;
+                    micBtn.classList.add('text-red-600', 'bg-red-50', 'mic-wave');
+                    micBtn.classList.remove('text-stone-500');
+                    userInput.placeholder = inputLang === 'zh-TW' ? "請開始說話..." : "請講廣東話...";
+                    recordingStatus.textContent = inputLang === 'zh-TW' ? "● 正在聆聽 (國語)..." : "● 正在聆聽 (廣東話)...";
+                    recordingStatus.classList.remove('hidden');
+                };
+
+                recognition.onend = () => {
+                    isRecording = false;
+                    micBtn.classList.remove('text-red-600', 'bg-red-50', 'mic-wave');
+                    micBtn.classList.add('text-stone-500');
+                    userInput.placeholder = "請問太白先生關於歷史的疑問...";
+                    recordingStatus.classList.add('hidden');
+                    userInput.focus();
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = Array.from(event.results).map(result => result[0].transcript).join('');
+                    userInput.value = transcript;
+                };
+
+                recognition.onerror = (event) => {
+                    isRecording = false;
+                    micBtn.classList.remove('text-red-600', 'bg-red-50', 'mic-wave');
+                    micBtn.classList.add('text-stone-500');
+                    userInput.placeholder = "錄音失敗，請重試";
+                    recordingStatus.classList.add('hidden');
+                };
+            } else {
+                micBtn.style.display = 'none';
+            }
+        }
+
+        function toggleRecording() {
+            if (!recognition) initSpeechRecognition(); // Ensure latest settings
+            if (isRecording) { recognition.stop(); } else { recognition.start(); }
+        }
+
+        // --- Text to Speech Setup (Old Man Voice) ---
+        function loadVoices() {
+            voices = synthesis.getVoices();
+        }
+
+        // Force voice load for Chrome/Safari
+        loadVoices();
+        if (synthesis.onvoiceschanged !== undefined) {
+            synthesis.onvoiceschanged = loadVoices;
+        }
+
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            updateSoundUI();
+            if (!isSoundOn) {
+                synthesis.cancel();
+            } else {
+                loadVoices();
+            }
+        }
+
+        function updateSoundUI() {
+            const iconContainer = desktopSoundBtn.querySelector('.icon-container');
+            const statusText = desktopSoundBtn.querySelector('.status-text');
+            iconContainer.innerHTML = isSoundOn ? speakerOnIcon : speakerOffIcon;
+            statusText.textContent = isSoundOn ? "語音：開" : "語音：關";
+            if(isSoundOn) {
+                desktopSoundBtn.classList.add('bg-stone-100', 'text-black', 'border-stone-500');
+                desktopSoundBtn.classList.remove('text-stone-700');
+            } else {
+                desktopSoundBtn.classList.remove('bg-stone-100', 'text-black', 'border-stone-500');
+                desktopSoundBtn.classList.add('text-stone-700');
+            }
+
+            mobileSoundBtn.innerHTML = isSoundOn ? speakerOnIcon : speakerOffIcon;
+            mobileSoundBtn.classList.toggle('text-paper', isSoundOn);
+            mobileSoundBtn.classList.toggle('text-stone-400', !isSoundOn);
+        }
+
+        function speakText(text) {
+            if (!synthesis || !isSoundOn) return;
+            synthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW'; 
+            
+            // --- OLD MAN VOICE SETTINGS ---
+            utterance.pitch = 0.6; // Deep pitch (Low)
+            utterance.rate = 0.8;  // Slow rate
+
+            // Robust Voice Selection Strategy
+            if (voices.length === 0) voices = synthesis.getVoices();
+            
+            // Try to find a Chinese voice
+            const zhVoice = voices.find(v => v.lang === 'zh-TW') || 
+                           voices.find(v => v.lang.includes('zh-TW')) ||
+                           voices.find(v => v.lang.includes('zh'));
+            
+            if (zhVoice) {
+                utterance.voice = zhVoice;
+            }
+
+            synthesis.speak(utterance);
+        }
+
+        // --- Initial Setup ---
+        initSpeechRecognition();
+        updateSoundUI();
+
+        // --- Core Functions ---
+
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function createMessageElement(role, text) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex w-full ${role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in group`;
+            wrapper.style.animation = "fadeIn 0.5s ease-out";
+
+            const innerDiv = document.createElement('div');
+            innerDiv.className = `flex max-w-[90%] md:max-w-[80%] ${role === 'user' ? 'flex-row-reverse' : 'flex-row'} gap-3`;
+
+            const avatar = document.createElement('div');
+            avatar.className = `flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 shadow-sm ${role === 'user' ? 'bg-white border-stone-300 text-stone-700' : 'bg-[#2d2a26] border-red-seal text-paper'} font-bold`;
+            if (role === 'user') {
+                 avatar.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>`;
+            } else {
+                 avatar.innerText = "李";
+            }
+
+            const bubble = document.createElement('div');
+            bubble.className = `p-5 shadow-md rounded-2xl leading-relaxed text-xl font-bold relative ${role === 'user' ? 'bg-white text-black rounded-tr-none border border-stone-300 sharp-text' : 'bg-paper-light text-black rounded-tl-none border-l-4 border-l-[#2d2a26] border border-stone-300 sharp-text'}`;
+
+            if (role === 'model') {
+                const stamp = document.createElement('div');
+                stamp.className = "absolute -top-3 -right-3 opacity-40 transform rotate-12 pointer-events-none";
+                stamp.innerHTML = `<div class="w-12 h-12 border-2 border-red-900 rounded-sm flex items-center justify-center"><span class="text-red-900 text-xs font-serif writing-vertical font-bold">太白</span></div>`;
+                bubble.appendChild(stamp);
+                bubble.style.fontFamily = '"Noto Serif TC", serif';
+
+                const speakBtn = document.createElement('button');
+                speakBtn.className = "absolute -right-8 top-0 p-1.5 text-stone-400 hover:text-black opacity-0 group-hover:opacity-100 transition-opacity";
+                speakBtn.title = "朗讀此句";
+                speakBtn.innerHTML = speakerOnIcon;
+                speakBtn.onclick = () => speakText(text);
+                bubble.appendChild(speakBtn);
+            }
+
+            const textDiv = document.createElement('div');
+            textDiv.className = "whitespace-pre-wrap";
+            textDiv.textContent = text;
+            
+            bubble.appendChild(textDiv);
+            innerDiv.appendChild(avatar);
+            innerDiv.appendChild(bubble);
+            wrapper.appendChild(innerDiv);
+
+            return wrapper;
+        }
+
+        async function handleSendMessage() {
+            const text = userInput.value.trim();
+            if (!text || isLoading) return;
+
+            const userMsgEl = createMessageElement('user', text);
+            chatContainer.appendChild(userMsgEl);
+            userInput.value = '';
+            scrollToBottom();
+
+            isLoading = true;
+            loadingIndicator.classList.remove('hidden');
+            sendBtn.disabled = true;
+            sendBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            scrollToBottom();
+
+            try {
+                let responseText;
+
+                if (isOfflineMode) {
+                    responseText = await getOfflineResponse(text);
+                } else {
+                    const systemPrompt = `
+                        你現在是唐朝詩仙【李白】（字太白，號青蓮居士）。
+                        你正在與現代的學生進行對話，你的任務是輔導他們關於【歷史】的問題。
+
+                        請遵循以下核心規範：
+                        1. **篇幅限制（極重要）**：回答務必**精簡扼要**，長度嚴格控制在原本的一半（約 50-80 字），點到為止，切勿長篇大論。
+                        2. **語氣風格**：豪放、浪漫。自稱「吾」或「太白」。
+                        3. **語言習慣**：使用「半文白」風格。
+                        4. **引用詩詞**：若情境合適，可引用一句詩（僅一句），並簡短解釋。
+                        5. **情緒**：偶爾提到「酒」。
+
+                        現在學生問的問題是：${text}
+                    `;
+
+                    const result = await model.generateContent({
+                        contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
+                    });
+                    responseText = result.response.text();
+                }
+
+                loadingIndicator.classList.add('hidden');
+                const modelMsgEl = createMessageElement('model', responseText);
+                chatContainer.appendChild(modelMsgEl);
+
+                if (isSoundOn) {
+                    speakText(responseText);
+                }
+
+            } catch (error) {
+                console.error("Error:", error);
+                loadingIndicator.classList.add('hidden');
+                let errMsg = '哎呀，酒喝多了，思緒有些混亂，請小友稍後再問。';
+                if (error.toString().includes('400') || error.toString().includes('API key')) {
+                    errMsg = 'API 金鑰似乎有誤，請檢查設定面板。';
+                }
+                const errorMsgEl = createMessageElement('model', errMsg);
+                chatContainer.appendChild(errorMsgEl);
+            } finally {
+                isLoading = false;
+                sendBtn.disabled = false;
+                sendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                scrollToBottom();
+                if(!isRecording) userInput.focus();
+            }
+        }
+
+        // --- Event Listeners ---
+        sendBtn.addEventListener('click', handleSendMessage);
+        micBtn.addEventListener('click', toggleRecording);
+        desktopSoundBtn.addEventListener('click', toggleSound);
+        mobileSoundBtn.addEventListener('click', toggleSound);
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+            }
+        });
+
+        // Add simple CSS animation for fade in
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        const welcomeSpeakBtn = document.querySelector('.speak-msg-btn');
+        if(welcomeSpeakBtn) {
+            welcomeSpeakBtn.onclick = () => {
+                const text = document.querySelector('.message-text').textContent;
+                speakText(text);
+            };
+        }
+
+    </script>
+</body>
+</html>
