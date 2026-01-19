@@ -594,33 +594,34 @@
             utterance.lang = 'zh-TW'; 
             
             // --- MALE VOICE SETTINGS ---
-            // A pitch < 1.0 usually sounds deeper/more masculine on default voices
-            utterance.pitch = 0.8; 
-            utterance.rate = 1.0; 
+            // Force very low pitch to make female voices sound masculine
+            utterance.pitch = 0.5; // VERY LOW
+            utterance.rate = 0.9;  // Slightly slow
 
             if (voices.length === 0) voices = synthesis.getVoices();
             
-            // Smart Voice Selection for "Male"
-            // 1. Look for explicit "Male" in name (rare but possible)
-            // 2. Look for "Danny" (MacOS/iOS Male Chinese)
-            // 3. Look for "Kangkang" (Windows often)
-            // 4. Fallback to any zh-TW/zh-HK
+            // Strategy: 
+            // 1. Try to find a Known Male Voice
+            // 2. If found, raise pitch back to normal (0.9)
+            // 3. If not found (likely using Female default), keep pitch low (0.5)
             
-            let targetVoice = voices.find(v => 
-                (v.lang === 'zh-TW' || v.lang === 'zh-HK' || v.lang === 'zh-CN') && 
-                (v.name.includes('Male') || v.name.includes('Danny') || v.name.includes('Kangkang'))
+            const maleKeywords = ['Danny', 'Kangkang', 'Bin', 'Male', '男'];
+            const targetVoice = voices.find(v => 
+                (v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('TW') || v.lang.includes('HK')) && 
+                maleKeywords.some(keyword => v.name.includes(keyword))
             );
 
-            if (!targetVoice) {
-                // Fallback priorities
-                targetVoice = voices.find(v => v.lang === 'zh-TW') || 
-                              voices.find(v => v.lang.includes('zh-TW')) ||
-                              voices.find(v => v.lang.includes('zh-HK')) || 
-                              voices.find(v => v.lang.includes('zh'));
-            }
+            const fallbackVoice = voices.find(v => v.lang === 'zh-TW') || 
+                                  voices.find(v => v.lang.includes('zh-TW')) ||
+                                  voices.find(v => v.lang.includes('zh'));
             
             if (targetVoice) {
                 utterance.voice = targetVoice;
+                // If native male voice, we don't need extreme pitch shifting
+                utterance.pitch = 0.95; 
+            } else if (fallbackVoice) {
+                utterance.voice = fallbackVoice;
+                // Keep low pitch 0.5 to simulate male from female voice
             }
 
             synthesis.speak(utterance);
