@@ -232,6 +232,20 @@
             }
         };
 
+        // --- Text Cleaning Helper (Fixes LaTeX $$ issues) ---
+        const cleanMath = (text) => {
+            if (!text || typeof text !== 'string') return text;
+            return text
+                .replace(/\$/g, '') // Remove dollar signs
+                .replace(/\\times/g, '×') // Replace LaTeX times
+                .replace(/\\div/g, '÷') // Replace LaTeX divide
+                .replace(/\\frac\{(\d+)\}\{(\d+)\}/g, '$1/$2') // Simple fraction conversion
+                .replace(/\^2/g, '²') // Area
+                .replace(/\^3/g, '³') // Volume
+                .replace(/\\pm/g, '±')
+                .replace(/\\approx/g, '≈');
+        };
+
         // --- Offline Generators ---
         const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
         
@@ -548,6 +562,7 @@
                 3. Question Formats: 2 MC, 2 Fill-in-the-blank.
                 4. For P1-P3, ensure numbers are appropriate.
                 5. The output language MUST be ${langInstruction}.
+                6. **IMPORTANT**: Use plain text and Unicode for math symbols (e.g. 5 × 3 = 15). Do NOT use LaTeX or Markdown formatting (no $ signs, no \\times, no \\div).
                 
                 Return strict JSON format.`;
 
@@ -574,7 +589,7 @@
                 }
                 };
 
-                const systemPrompt = `You are a professional Hong Kong math teacher named "Husky". Use ${langInstruction}.`;
+                const systemPrompt = `You are a professional Hong Kong math teacher named "Husky". Use ${langInstruction}. Always use plain text for math symbols, never LaTeX.`;
 
                 const data = await callGeminiAPI(prompt, systemPrompt, schema);
                 
@@ -671,7 +686,7 @@
                             )}
                         </div>
                         
-                        <p className="text-lg font-medium text-gray-800 mb-4 pr-24 leading-relaxed">{q.question}</p>
+                        <p className="text-lg font-medium text-gray-800 mb-4 pr-24 leading-relaxed">{cleanMath(q.question)}</p>
                         
                         {q.format === 'mc' && q.options ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
@@ -692,7 +707,7 @@
                                         <span className="inline-block w-6 h-6 rounded-full bg-gray-100 text-gray-500 text-center leading-6 text-xs mr-2 font-bold group-hover:bg-indigo-100">
                                             {String.fromCharCode(65+idx)}
                                         </span>
-                                        {opt}
+                                        {cleanMath(opt)}
                                     </button>
                                 ))}
                             </div>
@@ -708,7 +723,7 @@
                                     ${results[q.id] === true ? 'border-green-500 bg-green-50 text-green-700' : 
                                     results[q.id] === false ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 focus:border-indigo-400'}`}
                                 />
-                                {q.unit && <span className="text-gray-500 font-medium">{q.unit}</span>}
+                                {q.unit && <span className="text-gray-500 font-medium">{cleanMath(q.unit)}</span>}
                             </div>
                         )}
 
@@ -717,8 +732,8 @@
                             ${results[q.id] ? 'bg-green-100 text-green-800' : 'bg-red-50 text-red-800'}`}>
                             {results[q.id] ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <XCircle className="w-5 h-5 flex-shrink-0" />}
                             <div>
-                                <p className="font-bold">{results[q.id] ? translations[lang].practice.correct : `${translations[lang].practice.wrong} ${q.answer}`}</p>
-                                <p className="mt-1 opacity-90">{q.explanation}</p>
+                                <p className="font-bold">{results[q.id] ? translations[lang].practice.correct : `${translations[lang].practice.wrong} ${cleanMath(q.answer)}`}</p>
+                                <p className="mt-1 opacity-90">{cleanMath(q.explanation)}</p>
                             </div>
                             </div>
                         )}
@@ -774,7 +789,8 @@
                 const prompt = `Solve this math expression: "${input}". 
                 Provide the final answer and step-by-step breakdown suitable for a primary school student.
                 Explain in ${langInstruction}.
-                Show vertical form logic if applicable.`;
+                Show vertical form logic if applicable.
+                **IMPORTANT**: Use plain text or Unicode for math (e.g. 5 × 3). Do NOT use LaTeX or Markdown $ delimiters.`;
                 
                 const schema = {
                     type: "OBJECT",
@@ -838,7 +854,7 @@
                         <div className="bg-white p-6 rounded-2xl shadow-md border border-purple-100">
                             <div className="flex justify-between items-center mb-4 border-b pb-4">
                                 <span className="text-gray-500 font-mono text-lg">{input} =</span>
-                                <span className="text-3xl font-bold text-purple-600">{resultData.finalAnswer}</span>
+                                <span className="text-3xl font-bold text-purple-600">{cleanMath(resultData.finalAnswer)}</span>
                             </div>
                             
                             <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
@@ -851,7 +867,7 @@
                                         <span className="bg-purple-100 text-purple-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
                                             {idx + 1}
                                         </span>
-                                        <p className="text-gray-700 leading-relaxed">{step}</p>
+                                        <p className="text-gray-700 leading-relaxed">{cleanMath(step)}</p>
                                     </div>
                                 ))}
                             </div>
@@ -859,7 +875,7 @@
                             {resultData.tip && (
                                 <div className="mt-4 bg-yellow-50 text-yellow-800 p-3 rounded-lg text-sm border border-yellow-200 flex gap-2">
                                     <Sparkles className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-                                    {resultData.tip}
+                                    {cleanMath(resultData.tip)}
                                 </div>
                             )}
                         </div>
@@ -911,7 +927,8 @@
                 - Use ${langInstruction}.
                 - Do NOT give the answer directly if the user asks a specific problem. Instead, guide them with hints or ask leading questions (Socratic method).
                 - If asked for definitions (e.g. "What is perimeter"), give clear, simple examples using daily life objects.
-                - Keep responses concise and use emojis.`;
+                - Keep responses concise and use emojis.
+                - **IMPORTANT**: Use plain text or Unicode for math (e.g. 5 × 3). Do NOT use LaTeX or Markdown $ delimiters.`;
 
                 const context = messages.map(m => `${m.role === 'user' ? 'Student' : 'Tutor'}: ${m.text}`).join('\n');
                 const prompt = `${context}\nStudent: ${userMsg}\nTutor:`;
@@ -922,7 +939,7 @@
                     setMessages(prev => [...prev, { role: 'model', text: translations[lang].assistant.noKey }]);
                     onRequestKey();
                 } else {
-                    setMessages(prev => [...prev, { role: 'model', text: reply || translations[lang].assistant.error }]);
+                    setMessages(prev => [...prev, { role: 'model', text: cleanMath(reply) || translations[lang].assistant.error }]);
                 }
                 setIsThinking(false);
             };
@@ -946,7 +963,7 @@
                                     ${m.role === 'user' 
                                         ? 'bg-indigo-500 text-white rounded-br-none' 
                                         : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'}`}>
-                                    {m.text}
+                                    {cleanMath(m.text)}
                                 </div>
                             </div>
                         ))}
