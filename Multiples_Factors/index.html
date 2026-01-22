@@ -221,7 +221,9 @@
                     <!-- Row 1 -->
                     <div>
                         <h4 class="font-bold text-gray-600 mb-2 flex items-center gap-2">
-                            <span class="zh">數字 A 的倍數 (前10個):</span><span class="en hidden">Multiples of A (First 10):</span>
+                            <!-- Updated to show dynamic number -->
+                            <span class="zh"><span class="text-blue-600 font-extrabold text-lg dynamic-n1">數字 A</span> 的倍數 (前10個):</span>
+                            <span class="en hidden">Multiples of <span class="text-blue-600 font-extrabold text-lg dynamic-n1">A</span> (First 10):</span>
                         </h4>
                         <div id="lcm-list-1" class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg min-h-[60px] items-center"></div>
                     </div>
@@ -229,7 +231,9 @@
                     <!-- Row 2 -->
                     <div>
                         <h4 class="font-bold text-gray-600 mb-2 flex items-center gap-2">
-                            <span class="zh">數字 B 的倍數 (前10個):</span><span class="en hidden">Multiples of B (First 10):</span>
+                            <!-- Updated to show dynamic number -->
+                            <span class="zh"><span class="text-blue-600 font-extrabold text-lg dynamic-n2">數字 B</span> 的倍數 (前10個):</span>
+                            <span class="en hidden">Multiples of <span class="text-blue-600 font-extrabold text-lg dynamic-n2">B</span> (First 10):</span>
                         </h4>
                         <div id="lcm-list-2" class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg min-h-[60px] items-center"></div>
                     </div>
@@ -348,7 +352,9 @@
                     <!-- Row 1 -->
                     <div>
                         <h4 class="font-bold text-gray-600 mb-2 flex items-center gap-2">
-                            <span class="zh">數字 A 的因數:</span><span class="en hidden">Factors of A:</span>
+                            <!-- Updated to show dynamic number -->
+                            <span class="zh"><span class="text-green-600 font-extrabold text-lg dynamic-hcf-n1">數字 A</span> 的因數:</span>
+                            <span class="en hidden">Factors of <span class="text-green-600 font-extrabold text-lg dynamic-hcf-n1">A</span>:</span>
                         </h4>
                         <div id="hcf-list-1" class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg min-h-[60px] items-center"></div>
                     </div>
@@ -356,7 +362,9 @@
                     <!-- Row 2 -->
                     <div>
                         <h4 class="font-bold text-gray-600 mb-2 flex items-center gap-2">
-                            <span class="zh">數字 B 的因數:</span><span class="en hidden">Factors of B:</span>
+                            <!-- Updated to show dynamic number -->
+                            <span class="zh"><span class="text-green-600 font-extrabold text-lg dynamic-hcf-n2">數字 B</span> 的因數:</span>
+                            <span class="en hidden">Factors of <span class="text-green-600 font-extrabold text-lg dynamic-hcf-n2">B</span>:</span>
                         </h4>
                         <div id="hcf-list-2" class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg min-h-[60px] items-center"></div>
                     </div>
@@ -467,6 +475,10 @@
                 return;
             }
 
+            // Update Labels with Actual Numbers
+            document.querySelectorAll('.dynamic-n1').forEach(el => el.textContent = n1);
+            document.querySelectorAll('.dynamic-n2').forEach(el => el.textContent = n2);
+
             // Generate multiples (up to 10 for demonstration)
             const list1 = [];
             const list2 = [];
@@ -509,6 +521,10 @@
                 alert(currentLang === 'zh' ? "請輸入有效的正整數" : "Please enter valid positive integers");
                 return;
             }
+
+            // Update Labels with Actual Numbers
+            document.querySelectorAll('.dynamic-hcf-n1').forEach(el => el.textContent = n1);
+            document.querySelectorAll('.dynamic-hcf-n2').forEach(el => el.textContent = n2);
 
             // Generate factors
             const getFactors = (num) => {
