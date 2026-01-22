@@ -1,5 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { Layers, Puzzle, BookOpen, Calculator, Sigma } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倍數與因數 概念模擬器 | Multiples & Factors Simulator</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom scrollbar for mobile neatness */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Fix icon alignment */
+        .lucide {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+<div id="root"></div>
+
+<script type="text/babel">
+
+const { useState, useEffect } = React;
+
+// --- Helper for Icons in HTML mode ---
+// Wraps the lucide <i> tag to play nicely with React re-renders
+const Icon = ({ name, className }) => {
+    return <i data-lucide={name} className={className}></i>;
+};
 
 // --- Language Data ---
 const content = {
@@ -120,13 +173,13 @@ const IntroSection = ({ langData, type }) => {
     const isMultiple = type === 'multiple';
     const accentColor = isMultiple ? "text-blue-600" : "text-green-600";
     const bgIcon = isMultiple ? "bg-blue-100" : "bg-green-100";
-    const Icon = isMultiple ? Layers : Puzzle;
+    const iconName = isMultiple ? "layers" : "puzzle";
 
     return (
-        <div className="fade-in space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="fade-in space-y-6">
             <div className="text-center py-6">
                 <div className={`mx-auto w-16 h-16 ${bgIcon} rounded-full flex items-center justify-center mb-4`}>
-                    <Icon className={`w-8 h-8 ${accentColor}`} />
+                    <Icon name={iconName} className={`w-8 h-8 ${accentColor}`} />
                 </div>
                 <h2 className="text-2xl font-bold text-slate-800">
                     {isMultiple ? langData.m_intro_title : langData.f_intro_title}
@@ -169,11 +222,10 @@ const LCMTool = ({ langData }) => {
         setResult({ list1, list2, common, lcm });
     };
 
-    // Calculate on load
     useEffect(() => { calculate(); }, []);
 
     return (
-        <div className="fade-in animate-in slide-in-from-bottom-4 duration-500">
+        <div className="fade-in">
             <h2 className="text-xl font-bold text-center mb-6 text-blue-700">{langData.lcm_tool_title}</h2>
             
             {/* Input Area */}
@@ -282,7 +334,7 @@ const HCFTool = ({ langData }) => {
     useEffect(() => { calculate(); }, []);
 
     return (
-        <div className="fade-in animate-in slide-in-from-bottom-4 duration-500">
+        <div className="fade-in">
             <h2 className="text-xl font-bold text-center mb-6 text-green-700">{langData.hcf_tool_title}</h2>
             
             {/* Input Area */}
@@ -367,32 +419,41 @@ const App = () => {
     const [activeTab, setActiveTab] = useState('m_intro');
     const c = content[lang];
 
+    // Re-render icons when DOM updates
+    useEffect(() => {
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    });
+
     const tabs = [
-        { id: 'm_intro', label: c.tab_multiples_intro, icon: BookOpen },
-        { id: 'lcm_tool', label: c.tab_lcm_tool, icon: Calculator },
-        { id: 'f_intro', label: c.tab_factors_intro, icon: BookOpen },
-        { id: 'hcf_tool', label: c.tab_hcf_tool, icon: Calculator },
+        { id: 'm_intro', label: c.tab_multiples_intro, icon: 'book-open' },
+        { id: 'lcm_tool', label: c.tab_lcm_tool, icon: 'calculator' },
+        { id: 'f_intro', label: c.tab_factors_intro, icon: 'book-open' },
+        { id: 'hcf_tool', label: c.tab_hcf_tool, icon: 'calculator' },
     ];
 
     return (
-        <div className="min-h-screen flex flex-col max-w-md mx-auto bg-slate-50 shadow-2xl overflow-hidden relative border-x border-slate-200 font-sans">
+        <div className="min-h-screen flex flex-col max-w-md mx-auto bg-slate-50 shadow-2xl overflow-hidden relative border-x border-slate-200">
             
             {/* Header */}
             <header className="bg-white p-4 pt-6 pb-2 sticky top-0 z-10 border-b border-slate-100">
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-3">
                         {/* Logo Placeholder */}
-                        <div className="w-10 h-10 overflow-hidden rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 overflow-hidden rounded-lg bg-slate-100 flex items-center justify-center shrink-0 relative">
                             <img 
                                 src="logo.png" 
                                 alt="Logo" 
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover relative z-10"
                                 onError={(e) => {
                                     e.target.style.display = 'none';
                                 }} 
                             />
-                            {/* Fallback Icon (only shows if img is hidden, we handle this by logic or just let the img hide itself on error) */}
-                             <Sigma className="text-slate-400 absolute w-6 h-6 -z-10" />
+                            {/* Fallback Icon */}
+                             <div className="absolute inset-0 flex items-center justify-center z-0">
+                                <Icon name="sigma" className="text-slate-400 w-6 h-6" />
+                             </div>
                         </div>
                         <h1 className="font-bold text-lg leading-tight text-slate-800">
                             {c.title}
@@ -431,6 +492,7 @@ const App = () => {
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${colorClass}`}
                             >
+                                <Icon name={tab.icon} className="w-4 h-4 mr-2" />
                                 {tab.label}
                             </button>
                         );
@@ -455,4 +517,9 @@ const App = () => {
     );
 };
 
-export default App;
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+
+</script>
+</body>
+</html>
